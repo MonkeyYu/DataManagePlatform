@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark>
+		配置说明...
+		
+	
+	</remark>
+
+    <job id="1" name="gpExportJob" status="on" class="stateful" delay="134889" script="0 */1 * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.export.GpExportTask"
+              externalPath="gpfdist://192.168.36.120:8081/"
+              namesFileName="/problem/updatetables.xml"
+              errorFilePath="/data1/ftp_data_error/"
+              ftpPath="/data1/ftp_data/"
+              filePath="D:\\Workload_Fanganku_YT_Date.csv"
+              sqlfile="/sql/gpExport.sql"
+              num="5"
+              name="gpExport.sql"
+              source="gp" />
+    </job>
+
+    <job id="2" name="mysqlExportJob" status="on" class="stateful" delay="134889" script="0 */1 * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.export.MysqlExportTask"
+              externalPath="gpfdist://192.168.36.120:8081/"
+              namesFileName="/problem/updatetables.xml"
+              errorFilePath="/data1/ftp_data_error/"
+              ftpPath="/data1/ftp_data/"
+              filePath="D:\\Pageview_Fanganku_YT_Date.csv"
+              sqlfile="/sql/mysqlExport.sql"
+              num="5"
+              name="mysqlExport.sql"
+              source="mysql" />
+    </job>
+
+    <job id="3" name="gpUploadJob" status="on" class="stateful" delay="134889" script="10 */1 * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.export.GpUploadTask"
+              externalPath="gpfdist://192.168.36.120:8081/"
+              namesFileName="/problem/updatetables.xml"
+              errorFilePath="/data1/ftp_data_error/"
+              ftpPath="/data1/ftp_data/"
+              filePath="D:\\1.txt"
+              sqlfile="/sql/gpExport.sql"
+              num="5"
+              name="application.properties"
+              source="gp" />
+    </job>
+
+    <job id="4" name="mysqlUploadJob" status="on" class="stateful" delay="134889" script="10 */1 * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.export.MysqlUploadTask"
+              externalPath="gpfdist://192.168.36.120:8081/"
+              namesFileName="/problem/updatetables.xml"
+              errorFilePath="/data1/ftp_data_error/"
+              ftpPath="/data1/ftp_data/"
+              filePath="D:\\1.txt"
+              sqlfile="/sql/gpExport.sql"
+              num="5"
+              name="application.properties"
+              source="gp" />
+    </job>
+	
+	<job id="50" name="rkJob" status="on" class="stateful" delay="134889" script="0 0 2,5 * * ?">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ImportTask"
+			externalPath="gpfdist://192.168.36.120:8081/"
+			namesFileName="/problem/updatetables.xml"
+			errorFilePath="/data1/ftp_data_error/"
+			ftpPath="/data1/ftp_data/"
+			filePath="/data1/load/"
+			sqlfile="/problem/sql/rk.xml"
+			num="5"
+			name="rkTask"
+			source="gp" />
+	</job>
+	<!---->
+	<!--<job id="40" name="gjFtpJob" status="on" class="stateful" delay="134889" script="0 0 1 * * ?">-->
+		<!--<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemFtpGjTask"-->
+			<!--sqlfile="problem/sql/ftp.xml"-->
+			<!--filetypes="txds"-->
+			<!--typenum="0"-->
+			<!--filesplit="-"-->
+			<!--loadpath="/data1/ftp_data/"-->
+			<!--remotepath="/FMS_ALARMDATA/"-->
+			<!--datatype="告警"-->
+			<!--url="188.0.52.27" user="hlzx_gd" pwd="Gd_wghl123!@#" port="21"-->
+			<!--num="5" name="gjFtpTask"-->
+			<!--source="mysql" />-->
+	<!--</job>-->
+	<!---->
+	<!--<job id="205" name="schemeWsJob" status="on" class="stateful" delay="134889" script="50 15 18 26 4 ? 2017">-->
+		<!--<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemWsTask" -->
+		<!--num="5"-->
+		<!--name="schemeWsTask"-->
+		<!--wsurl="http://127.0.0.1:7980/edmp/ws/schemeUnifyManagerSrv?wsdl"-->
+		<!--classname="com.etone.universe.dmp.problem.ws.impl.LteSchemeUnifyManagerImpl"-->
+		<!--source="gp"-->
+		<!--/>-->
+	<!--</job>-->
+	<!--<job id="206" name="schemeWsCsJob" status="on" class="stateful" delay="134889" script="20 37 13 24 4 ? 2017">-->
+		<!--<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemWsTask" -->
+		<!--num="5"-->
+		<!--name="schemeWsCsTask"-->
+		<!--wsurl="http://192.168.1.24:7980/edmp/ws/schemeUnifyManagerSrv?wsdl"-->
+		<!--classname="com.etone.universe.dmp.problem.ws.impl.LteSchemeUnifyManagerImplTest"-->
+		<!--source="gp"-->
+		<!--/>-->
+	<!--</job>-->
+	<!---->
+	<!--&lt;!&ndash; 智能分析预统 &ndash;&gt;-->
+	<!--<job id="5001" name="problemTestJob" status="on" class="stateless" delay="10" script="0 0 7 * * ?">-->
+      <!--<task priority="10" class="com.etone.universe.dmp.task.sql.GpSqlTask" name="schemeTest.sql" source="gp"/>-->
+    <!--</job>-->
+    <!---->
+    <!--&lt;!&ndash; 子工单状态维护,每周五凌晨6点执行 &ndash;&gt;-->
+	<!--<job id="2" name="zgdwhJob" status="on" class="stateless" delay="134889" script="0 0 6 ? * 6">-->
+          <!--<task priority="10" class="com.etone.universe.dmp.task.sql.GpSqlTask" name="zgdwh.sql" source="gp"/>-->
+    <!--</job>-->
+    <!---->
+     <!--&lt;!&ndash; 高铁基础指标预统 &ndash;&gt;-->
+    <!--<job id="5002" name="gtGridkpiJob" status="on" class="stateless" delay="10" script="0 0 23 * * ?">-->
+      <!--<task priority="10" class="com.etone.universe.dmp.task.sql.GpSqlTask" name="gtGridkpi.sql" source="gp"/>-->
+    <!--</job>-->
+    <!---->
+    <!--&lt;!&ndash; 数据分发任务扫描，每天执行 &ndash;&gt;-->
+	<!--<job id="2" name="disCfgJob" status="on" class="stateless" delay="0" script="30 22 14 * * ?">-->
+          <!--<task priority="10" class="com.etone.universe.dmp.task.problem.DisTaskCfgTask" sqlfile="/dis/dis.xml" name="disCfgTask" disdatasource="mysql" source="gp"  />-->
+    <!--</job>-->
+    <!---->
+    <!--&lt;!&ndash; 深度覆盖 &ndash;&gt;-->
+    <!--<job id="5005" name="gtGridkpiJob2" status="on" class="stateless" delay="10" script="0 0 22 * * ?">-->
+      <!--<task priority="10" class="com.etone.universe.dmp.task.sql.GpSqlTask" name="deepcover.sql" source="gp"/>-->
+    <!--</job>-->
+    
+    
+
+</configuration>

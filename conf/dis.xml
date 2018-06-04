@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark>
+		配置说明...
+		
+	
+	</remark>
+	
+	<!-- 数据分发任务扫描，每天执行 -->
+	<job id="2" name="disCfgJob" status="on" class="stateless" delay="0" script="0 03 15 * * ?">
+          <task priority="10" class="com.etone.universe.dmp.task.problem.DisTaskCfgTask" sqlfile="/dis/dis.xml" name="disCfgTask" disdatasource="mysql" source="gp"  />
+    </job>
+
+</configuration>

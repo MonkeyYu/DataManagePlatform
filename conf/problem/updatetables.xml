@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 更新级表,如果value配置为0则不需要去重,否则需要去重 -->
+<names id="tablenames" type="string">
+	<name key="mt_txtz_cell_month">vcordernumber</name>
+	<name key="mt_acstz_cell_month">vcordernumber</name>
+	<name key="mt_bcstz_cell_month">vcordernumber</name>
+	<name key="mt_ccstz_cell_month">vcordernumber</name>
+	<name key="mt_planningsite_cell_month">vcordernumber</name>
+	<name key="mt_demandsite_cell_month">vcordernumber</name> 
+	<name key="yy_s_point1_month">0</name>
+	<name key="yy_s_point2_month">0</name>
+	<name key="yy_p_point1_month">0</name>
+	<name key="yy_p_point2_month">0</name>
+</names>
+
+<!-- 敏感字段表 -->
+<names id="sensitivitytablenames" type="string">
+	<name key="yy_s_point1_month">vccontactphonenumber</name>
+	<name key="yy_p_point1_month">vccontactphonenumber</name>
+</names>
+
+<!-- 需要用代码转码的表-->
+<names id="transfercharsettables" type="string">
+	<name key="gx_huayin_cell_month">gx_huayin_cell_month</name>
+	<name key="gx_kehuceshebei_cell_month">gx_kehuceshebei_cell_month</name>
+	<name key="gx_shuju_cell_month">gx_shuju_cell_month</name>
+	<name key="gx_donghuan_cell_month">gx_donghuan_cell_month</name>
+	<name key="gx_chuansong_cell_month">gx_chuansong_cell_month</name>
+	<name key="txds_rfgxqdt_cell_month">txds_rfgxqdt_cell_month</name>
+	<name key="yy_znfxfgfxtadvrerp_cell_month">yy_znfxfgfxtadvrerp_cell_month</name>
+</names>
+
+<!-- 需要增加年月日字段的表-->
+<names id="addDateTables" type="string">
+	<name key="gx_huayin_cell_month">gx_huayin_cell_month</name>
+	<name key="gx_kehuceshebei_cell_month">gx_kehuceshebei_cell_month</name>
+	<name key="gx_shuju_cell_month">gx_shuju_cell_month</name>
+	<name key="gx_donghuan_cell_month">gx_donghuan_cell_month</name>
+	<name key="gx_chuansong_cell_month">gx_chuansong_cell_month</name>
+</names>
+
+
+<!-- 由于分隔符太多而失败的表，需要追入数据-->
+<names id="errDisTables" type="string">
+	<name key="yy_ltesource_antennalte_month">yy_ltesource_antennalte_month</name>
+</names>

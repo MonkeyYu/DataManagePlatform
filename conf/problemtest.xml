@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark></remark>
+
+
+<job id="30" name="problemtest" status="on" class="stateful" delay="134889" script="0 56 14 * * ? 2017">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemTest"
+			externalPath="gpfdist://192.168.36.120:8081/" 
+			namesFileName="/problem/updatetables.xml"
+			errorFilePath="/data1/ftp_data_error/"
+			ftpPath="/data1/ftp_data/"
+			filePath="/data1/load/"
+			sqlfile="/problem/sql/rk.xml"
+			num="5" 
+			name="rkTask"
+			source="gp" />
+	</job>

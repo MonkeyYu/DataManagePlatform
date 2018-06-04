@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 查询工单表的sql -->
+<sql name="queryWorkJob">
+	select * from lte_order_track l 
+	where	handle_state='未派单'
+	and cluster_type in('全网指标')
+	and l.file_path IS NOT NULL
+	and l.file_path <> ''
+	and failure_time <> 3
+	order by create_date
+</sql>
+
+<sql name="insertLog">
+insert into d_problemdtailLog(vclogid,vcinfo,dtfiretime) values(?,?,now())
+</sql>

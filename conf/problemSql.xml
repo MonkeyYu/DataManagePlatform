@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark>
+		
+	</remark>
+    
+    <job id="5001" name="problemTestJob" status="on" class="stateless" delay="1" script="0 0 19 1 * ? 2017">
+          <task priority="10" class="com.etone.universe.dmp.task.problem.ExprotTask" name="cellmrsrsrp.sql" source="gp"/>
+    </job>
+	
+</configuration>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sql name="queryTask">
+	select * from f_et_distribute_task where startdate<=? or enddate>=?
+</sql>
+
+<sql name="insertLog">
+	insert into f_et_distribute_task_log(vctaskid,intstatus,vcinfo,vcfilename,vcremovefilename,vcexttablename,vcsql) values(?,?,?,?,?,?,?)
+</sql>

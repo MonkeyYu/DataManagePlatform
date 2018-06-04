@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- 查询高速工单 -->
+<sql name="queryGaosuWorkJob">
+select * from lte_order_track l 
+	where 	handle_state='未派单' 
+			and cluster_type='高速指标'
+			and l.file_path IS NOT NULL
+	    	and l.file_path <> ''
+</sql>
+
+<!-- 更新工单状态 -->
+<sql name="updateGaosuWork">
+	update lte_order_track set handle_state='初步方案制定',
+	cluster_count= ? ,
+	question_count= ?
+	where order_code=?
+
+</sql>
+
+<!-- 统计高速工单问题点数量 -->
+<sql name="queryCount">
+ 	select COALESCE(count(1),0) cluster_count,COALESCE(sum(question_count),0) question_count from lte_cluster_question where order_code=?
+</sql>
+
+<!-- 核查高速LTE汇聚表数据 -->
+<sql name="queryGaosuLte">
+select vcjlplbnum from ${tableName} e where vctype=? and 
+	not exists (
+		select vcClusterProblemNum from mt_gaosu_lte_city_month t 
+		where t.vcClusterProblemNum=e.vcjlplbnum
+		)
+</sql>
+
+<!-- 核查高速GSM汇聚表数据 -->
+<sql name="queryGaosuGsm">
+select vcjlplbnum from ${tableName} e where vctype=? and 
+	not exists (
+		select vcClusterProblemNum from mt_gaosu_gsm_city_month t 
+		where t.vcClusterProblemNum=e.vcjlplbnum
+		)
+</sql>
+
+<!-- insert高速LTE汇聚表数据到聚类跟踪表lte_cluster_question-->
+<sql name="insertGaosuLte">
+ INSERT INTO lte_cluster_question (
+            cluster_code,
+            question_count,
+            city,
+            cluster_longitude,
+            cluster_latitude,
+            int_month,
+            data_source,
+            question_type,
+            question_date,
+            question_section,
+            first_analysis,
+            order_code,
+            handle_state,
+            is_show,
+            times,
+            order_type,
+            home_grid,
+            problem_status
+        ) select
+		        vcClusterProblemNum cluster_code,
+            ProblemActiveNum question_count,
+            c.intcityname city,
+            flonb cluster_longitude,
+            flat cluster_latitude,
+            intyear||intmonth||intday int_month,
+            DataSources data_source,
+            ProblemType question_type,
+            FirstProblemTime question_date,
+            ExpresswayName question_section,
+            FirstAnalysis first_analysis,
+            ? order_code,
+            '初步方案制定' handle_state,
+            1 is_show,
+            0 times,
+            '高速工单' order_type,
+            expresswayname home_grid,
+            '初步分析中'
+			from mt_gaosu_lte_city_month m left join d_city_info c on m.intcityid=c.intcityid where 
+			EXISTS(select 1 from ${tableName} t where vctype=? and m.vcClusterProblemNum=t.vcjlplbnum)
+			and  filemaik =(select max(filemaik) from mt_gaosu_lte_city_month)
+</sql>
+
+
+<!-- insert高速GSM汇聚表数据到聚类跟踪表lte_cluster_question-->
+<sql name="insertGaosuGsm">
+ INSERT INTO lte_cluster_question (
+            cluster_code,
+            question_count,
+            city,
+            cluster_longitude,
+            cluster_latitude,
+            int_month,
+            data_source,
+            question_type,
+            question_date,
+            question_section,
+            first_analysis,
+            order_code,
+            handle_state,
+            is_show,
+            times,
+            order_type,
+            home_grid,
+            problem_status
+        ) select
+		        vcClusterProblemNum cluster_code,
+            ProblemActiveNum question_count,
+            c.intcityname city,
+            flonb cluster_longitude,
+            flat cluster_latitude,
+            intyear||intmonth||intday int_month,
+            DataSources data_source,
+            ProblemType question_type,
+            FirstProblemTime question_date,
+            ExpresswayName question_section,
+            FirstAnalysis first_analysis,
+            ? order_code,
+            '初步方案制定' handle_state,
+            1 is_show,
+            0 times,
+            '高速工单' order_type,
+            expresswayname home_grid,
+            '初步分析中'
+			from mt_gaosu_gsm_city_month m left join d_city_info c on m.intcityid=c.intcityid where 
+			EXISTS(select 1 from ${tableName} t where vctype=? and m.vcClusterProblemNum=t.vcjlplbnum)
+			and  filemaik =(select max(filemaik) from mt_gaosu_gsm_city_month)
+</sql>
+
+<!-- 创建高速外部表 -->
+<sql name="createGaosuExtTable">
+ 	CREATE EXTERNAL TABLE ${tableName}
+			(
+			vcjlplbnum varchar(200),
+			vctype varchar(200)
+			)
+			location ('${externalPathStr}') format 'csv' (delimiter '|' null '') 
+			log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
+
+<!-- 根据工单编号删除聚类跟踪表数据 -->
+<sql name="removeAllQuestionByCode">
+    delete from lte_cluster_question where  order_code=?
+</sql>
+<!-- 根据工单编号删除聚类跟踪表数据 -->
+<sql name="removeCountCode">
+    delete from lte_gaosu_cluster_count where  vcordercode=?
+</sql>
+
+<!-- 插入高速LTE汇总表 -->
+<sql name="insertLteCount">
+insert into lte_gaosu_cluster_count(vcclustercode,vcclusterstatus,intproblemcount,intactivitycount,intaddcount,vcordercode,dtcreatedate,vcproblemtype)
+select vcclusterproblemnum,clusterstate,totelproblemnum,problemactivenum,
+	case 	when clusterstate='更新' then totelproblemnum-COALESCE(c.intproblemcount,0)
+				when clusterstate='新增' then problemactivenum else 0 end intaddcount,
+	? vcordercode,
+	now() dtcreatedate,g.problemtype
+from mt_gaosu_lte_city_month g left join 
+(select intproblemcount,vcclustercode,rank() OVER (PARTITION BY vcclustercode ORDER BY dtcreatedate DESC)n from lte_gaosu_cluster_count t) c 
+on g.vcclusterproblemnum =c.vcclustercode and c.n=1 
+ where clusterstate in('新增','更新') and EXISTS(select 1 from ${tableName} t where vctype=? and g.vcclusterproblemnum=t.vcjlplbnum)
+ and  filemaik =(select max(filemaik) from mt_gaosu_lte_city_month)
+</sql>
+
+<!-- 插入高速GSM汇总表 -->
+<sql name="insertGsmCount">
+insert into lte_gaosu_cluster_count(vcclustercode,vcclusterstatus,intproblemcount,intactivitycount,intaddcount,vcordercode,dtcreatedate,vcproblemtype)
+select vcclusterproblemnum,clusterstate,totelproblemnum,problemactivenum,
+	case 	when clusterstate='更新' then totelproblemnum-COALESCE(c.intproblemcount,0)
+				when clusterstate='新增' then problemactivenum else 0 end intaddcount,
+	? vcordercode,
+	now() dtcreatedate,g.problemtype
+from mt_gaosu_gsm_city_month g left join 
+(select intproblemcount,vcclustercode,rank() OVER (PARTITION BY vcclustercode ORDER BY dtcreatedate DESC)n from lte_gaosu_cluster_count t) c 
+on g.vcclusterproblemnum =c.vcclustercode and c.n=1 
+ where clusterstate in('新增','更新') and EXISTS(select 1 from ${tableName} t where vctype=? and g.vcclusterproblemnum=t.vcjlplbnum)
+ and  filemaik =(select max(filemaik) from mt_gaosu_gsm_city_month)
+</sql>
+
+
+

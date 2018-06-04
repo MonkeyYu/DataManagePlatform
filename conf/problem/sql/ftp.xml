@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sql name="queryFtpTransmissionFile">
+	select count(1) from f_et_ftptransmission_log where vcfilename like ?
+</sql>
+
+<sql name="queryAllGaojingData">
+	select vcfilename from f_et_ftptransmission_log where vcdatatype='告警'
+</sql>
+
+<sql name="saveFtpTransmissionLog">
+	insert into f_et_ftptransmission_log(
+	dtinsertTime,
+	dtfileTime,
+	intfileSize,
+	vcfileName,
+	vcdataType,
+	vcdataPath)
+	values(
+	now(),
+	?,
+	?,
+	?,
+	?,
+	?
+	)
+</sql>
+
+<sql name="updateStatus">
+	update f_et_ftptransmission_log set intstatus=1 where intid=?
+</sql>
+
+<!-- 获取要清理的MRO文件 -->
+<sql name="queryHistory">
+	select vcfilename,intid from f_et_ftptransmission_log t 
+		where ?>date_format(dtfiletime,'%Y%m%d')
+				and vcdatatype='MRO,MR' and intstatus=0;
+</sql>

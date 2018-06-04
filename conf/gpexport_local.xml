@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark>
+		配置说明...
+		
+	
+	</remark>
+
+    <!--<job id="1" name="gpExportJob" status="on" class="stateful" delay="134889" script="0 */1 * * * ?">-->
+        <!--<task priority="10" class="com.etone.universe.dmp.task.export.GpExportTask"-->
+              <!--externalPath="gpfdist://192.168.36.120:8081/"-->
+              <!--namesFileName="/problem/updatetables.xml"-->
+              <!--errorFilePath="/data1/ftp_data_error/"-->
+              <!--ftpPath="/data1/ftp_data/"-->
+              <!--filePath="D:\\Workload_Fanganku_YT_Date.csv"-->
+              <!--sqlfile="/sql/gpExport.sql"-->
+              <!--num="5"-->
+              <!--name="gpExport.sql"-->
+              <!--source="gp" />-->
+    <!--</job>-->
+
+    <!--<job id="2" name="mysqlExportJob" status="on" class="stateful" delay="134889" script="0 */1 * * * ?">-->
+        <!--<task priority="10" class="com.etone.universe.dmp.task.export.MysqlExportTask"-->
+              <!--externalPath="gpfdist://192.168.36.120:8081/"-->
+              <!--namesFileName="/problem/updatetables.xml"-->
+              <!--errorFilePath="/data1/ftp_data_error/"-->
+              <!--ftpPath="/data1/ftp_data/"-->
+              <!--filePath="D:\\Pageview_Fanganku_YT_Date.csv"-->
+              <!--sqlfile="/sql/mysqlExport.sql"-->
+              <!--num="5"-->
+              <!--name="mysqlExport.sql"-->
+              <!--source="mysql" />-->
+    <!--</job>-->
+
+    <!--<job id="3" name="gpUploadJob" status="on" class="stateful" delay="134889" script="10 */1 * * * ?">-->
+        <!--<task priority="10" class="com.etone.universe.dmp.task.export.GpUploadTask"-->
+              <!--externalPath="gpfdist://192.168.36.120:8081/"-->
+              <!--namesFileName="/problem/updatetables.xml"-->
+              <!--errorFilePath="/data1/ftp_data_error/"-->
+              <!--ftpPath="/data1/ftp_data/"-->
+              <!--filePath="D:\\1.txt"-->
+              <!--sqlfile="/sql/gpExport.sql"-->
+              <!--num="5"-->
+              <!--name="application.properties"-->
+              <!--source="gp" />-->
+    <!--</job>-->
+
+    <!--<job id="4" name="mysqlUploadJob" status="on" class="stateful" delay="134889" script="10 */1 * * * ?">-->
+        <!--<task priority="10" class="com.etone.universe.dmp.task.export.MysqlUploadTask"-->
+              <!--externalPath="gpfdist://192.168.36.120:8081/"-->
+              <!--namesFileName="/problem/updatetables.xml"-->
+              <!--errorFilePath="/data1/ftp_data_error/"-->
+              <!--ftpPath="/data1/ftp_data/"-->
+              <!--filePath="D:\\1.txt"-->
+              <!--sqlfile="/sql/gpExport.sql"-->
+              <!--num="5"-->
+              <!--name="application.properties"-->
+              <!--source="gp" />-->
+    <!--</job>-->
+
+    <job id="30" name="problemtest" status="on" class="stateful" delay="134889" script="*/10 * * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.problem.ProblemTest"
+              externalPath="gpfdist://192.168.36.120:8081/"
+              namesFileName="/problem/updatetables.xml"
+              errorFilePath="/data1/ftp_data_error/"
+              ftpPath="/data1/ftp_data/"
+              filePath="/data1/load/"
+              sqlfile="/problem/sql/rk.xml"
+              num="5"
+              name="rkTask"
+              />
+    </job>
+
+    <job id="5" name="ExportJob" status="off" class="stateful" delay="134889" script="*/10 * * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.problem.ExcelImportTask"
+              rootPath="C:\\"
+              dirName="ctbwkcellinfo_${hiveconf:yyyyMMdd-1}"
+              delimiter=","
+              suffix="csv"
+              size="100"
+              sqlFileName='export.sql'
+              name='export.sql'
+              source="gp" />
+    </job>
+
+    <job id="5" name="ExportJob" status="off" class="stateful" delay="134889" script="*/10 * * * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.export.ImportTask"
+              dirPath="/data1/load/d_et_plan_cellinfo"
+              name="d_et_plan_cellinfo_import.sql"
+              source="gp" />
+    </job>
+
+</configuration>

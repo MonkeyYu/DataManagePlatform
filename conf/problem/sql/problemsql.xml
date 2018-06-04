@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 这里为公共sql语句配置 -->
+
+
+<!-- 删除外部表语句 -->
+<sql name="deleteExtTable">
+	drop external table IF EXISTS  
+</sql>

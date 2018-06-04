@@ -1,0 +1,1507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sql name="queryWorkJob">
+	select * from lte_order_track l 
+	where cluster_type in('全网指标') and handle_state='未派单'
+	and l.file_path IS NOT NULL
+	and l.file_path <> ''
+	order by create_date
+</sql>
+
+<!-- 更新跟踪表问题点数量 -->
+<sql name="updateProblemCount">
+	update lte_cluster_question q set question_count=n.intjlcount from f_et_plb_result_new n where n.vcjlplbnum=q.cluster_code
+</sql>
+
+<!-- 更新问题点状态 -->
+<sql name="updateProblemStatus">
+	UPDATE lte_cluster_question b SET problem_status=P.pro_state
+	FROM(SELECT cluster_code, order_code,CASE WHEN (is_solved='评估通过') THEN '评估通过'
+	WHEN (is_solved='评估未通过') THEN '评估未通过'
+	WHEN (is_solved='挂起') THEN '挂起'
+	WHEN (first_analysis<>'' AND detail_analysis<>'' 
+	AND (is_solved<>'评估未通过' AND is_solved<>'评估通过') AND order_state='已完成') THEN '效果评估中'
+	WHEN (first_analysis<>'' AND detail_analysis<>'' 
+	AND (is_solved<>'评估未通过' AND is_solved<>'评估通过') AND order_state<>'已完成') THEN '方案实施中'
+	WHEN (first_analysis<>'' AND first_proposal<>'' AND first_proposal_type<>'' 
+	AND reason_classify<>'' AND (detail_analysis='' OR detail_analysis IS NULL) AND transfer_city = 2) THEN '待观察'
+	WHEN (first_analysis<>'' AND first_proposal<>'' AND first_proposal_type<>'' 
+	AND reason_classify<>'' AND (detail_analysis='' OR detail_analysis IS NULL) AND transfer_city = 1) THEN '详细分析中' 
+	ELSE '初步分析中' END pro_state
+	FROM lte_cluster_question) P
+	WHERE b.cluster_code = P .cluster_code AND b.order_code = P .order_code
+</sql>
+
+<!-- 匹配未派单的详细问题点 -->
+<sql name="queryDetailProblem">
+	select  e1.vcproblemnum,e2.vcjlplbnum from 
+		${tableName} e1,
+		(select vcproblemnum,vcjlplbnum from f_et_plb_result_new t where vcordercode=? and exists(select 1 from lte_cluster_question t1 where t.vcjlplbnum=t1.cluster_code and order_code=?))e2
+		where sheetname<>'LTE高重叠覆盖路段详细信息' and e1.vcproblemnum = e2.vcproblemnum
+	ORDER BY
+		e2.vcjlplbnum	
+</sql>
+
+<sql name="queryNotPushOrderFile2">
+        SELECT
+        *
+        FROM
+        lte_order_track l
+        WHERE
+        l.file_path IS NOT NULL
+        and l.file_path <> ''
+        AND l.order_code=?
+        AND failure_time <> 3
+        order by create_date
+</sql>
+
+<sql name="queryRealPath">
+     select real_path from lte_realpath
+</sql>
+
+<sql name="removeAllQuestionByCode">
+    delete from lte_cluster_question where original_order_code=?
+</sql>
+
+<sql name="updateNewOrderCode">
+    update lte_cluster_question as t1 set order_code=?,is_solved=null,city_order_code=null,
+    vcsolvestate='待办',problem_status='初步分析中',trim_village=null,
+    property=null,target=null,order_state=null,transfer_city=1
+		from f_et_plb_result_new t2 where t1.cluster_code=t2.vcjlplbnum
+		and t1.problem_status='评估未通过' and t2.vcordercode=? and t1.original_order_code!=?
+</sql>
+
+<sql name="removeQuestionByCode">
+    update lte_cluster_question set order_code='',handle_state='' where order_code=?
+</sql>
+
+<sql name="updateCodestate">
+    update f_et_plb_order_temp set intstatus = 2 where vcjlplbnum in (select cluster_code from lte_cluster_question where order_code=?)
+</sql>
+
+<sql name="updateXLproInfo2">
+          UPDATE ${tableName2}
+          SET xl_state = ?,
+              order_code =''
+          where order_code = ?
+</sql>
+
+<sql name="saveClusterQuestion">
+	insert into lte_cluster_question (cluster_code,question_count,city,cluster_longitude,cluster_latitude,involve_site,
+	int_month,data_source,home_grid,file_name,question_type,question_date,question_section,optimize_proposal,
+	first_analysis,order_code,handle_state,is_show,times,order_type,problem_status,cover_scene,value_label,special_label,original_order_code)
+	select c.vcjlplbnum,c.intjlcount question_count,c.vccity,c.fjllonb longitude,c.fjllat latitude,c.vccgi,c.intdateid,
+	case when c.vcdatasource is not null then c.vcdatasource else split_part(c.vcproblemnum,'-',2) end data_source,
+	c.vcgridid,c.vcfilename,c.vcjltype,case when to_date(c.datetime,'YYYY-MM-DD HH24-MI-SS') is not null 
+	then to_date(c.datetime,'YYYY-MM-DD HH24-MI-SS') else date_trunc('second', now()) end datetime,
+	c.vcroadname,c.vcsuggest,c.vcsuggest,'${order_code}','${handle_state}',1,0,'普通工单','初步分析中',
+	vccoverscenes,vcvaluetag,vcspecialtag,'${order_code}'
+	from f_et_plb_vcpro_vcjl c where vcjlplbnum in (${datas}) and vcordercode='${order_code}'
+</sql>
+
+<sql name="updateDataSource">
+		update lte_cluster_question set data_source=? where data_source in (${datas}) and order_code=?
+</sql>
+
+<sql name="queryClusterQuestionCount">
+	select t1.jlcount+t2.jlcount from
+	(select count(1) jlcount from lte_cluster_question where order_code = ?)t1,
+	(select count(distinct vcjlplbnum) jlcount from lte_cluster_question t1 inner join f_et_plb_result_new t2
+	on t1.cluster_code=t2.vcjlplbnum left join lte_order_track t3 on t1.order_code=t3.order_code 
+	where 1 = 1 and problem_status='评估未通过' and t2.vcordercode=? 
+	and t1.original_order_code!=?) t2
+</sql>
+
+<sql name="exportClusterList">
+        SELECT
+        cluster_code 聚合问题点序号,
+        question_count 问题点数量,
+        city 地市,
+        cluster_longitude 聚合问题点经度,
+        cluster_latitude 聚合问题点纬度,
+        involve_site 涉及问题小区,
+        max(int_month) 日期,
+        data_source 数据来源,
+        home_grid 归属网格,
+        special_label 专项标签,
+        cover_scene 覆盖场景,
+        value_label 价值标签,
+        file_name "涉及LOG/文件名称",
+        question_type 问题点类型,
+        case when first_analysis is not null and first_analysis !='' then first_analysis else substring(optimize_proposal,0,32000) end 初步原因分析,
+        first_proposal 初步方案,
+        reason_classify 原因归类,
+        first_proposal_type 初步优化方案类别,
+        detail_analysis 详细原因分析,
+        detail_proposal 详细方案,
+        detail_reason 详细原因归类,
+        detail_proposal_type 详细优化方案类别,
+        trim_village "调整小区/站点名称",
+        property 属性,
+        target 目标值,
+        is_solved 评估问题是否已解决,
+        handle_state 问题点处理状态,
+        question_date 问题点首次发生时间,
+        question_section 问题点路段
+        FROM
+        lte_cluster_question where 1 = 1
+        ${sqlStr}
+        GROUP BY
+        cluster_code,
+        question_count,
+        city,
+        cluster_longitude,
+        cluster_latitude,
+        involve_site,
+        data_source,
+        home_grid,
+        special_label,
+        cover_scene,
+        value_label,
+        file_name,
+        question_type,
+        first_analysis,
+        optimize_proposal,
+        first_proposal,
+        reason_classify,
+        first_proposal_type,
+        detail_analysis,
+        detail_proposal,
+        detail_reason,
+        detail_proposal_type,
+        trim_village,
+        property,
+        target,
+        is_solved,
+        handle_state,
+        question_date,
+        question_section
+</sql>
+
+<sql name="findOldClusterList">
+	SELECT t1.cluster_code 聚合问题点序号,t1.question_count 问题点数量,t1.city 地市,t1.cluster_longitude 聚合问题点经度,
+	t1.cluster_latitude 聚合问题点纬度,t1.involve_site 涉及问题小区,max(int_month) 日期,t1.data_source 数据来源,t1.home_grid 归属网格,
+	t1.special_label 专项标签,t1.cover_scene 覆盖场景,t1.value_label 价值标签,t1.file_name "涉及LOG/文件名称",t1.question_type 问题点类型,
+	case when first_analysis is not null and first_analysis !='' then first_analysis else substring(optimize_proposal,0,32000) end 初步原因分析,
+	t1.first_proposal 初步方案,t1.reason_classify 原因归类,t1.first_proposal_type 初步优化方案类别,t1.detail_analysis 详细原因分析,
+	t1.detail_proposal 详细方案,t1.detail_reason 详细原因归类,t1.detail_proposal_type 详细优化方案类别,t1.trim_village "调整小区/站点名称",
+	t1.property 属性,t1.target 目标值,t1.is_solved 评估问题是否已解决,t1.handle_state 问题点处理状态,
+	t1.question_date 问题点首次发生时间,t1.question_section 问题点路段
+	FROM lte_cluster_question t1 inner join f_et_plb_result_new t2
+	on t1.cluster_code=t2.vcjlplbnum  left join lte_order_track t3 on t1.order_code=t3.order_code
+	where 1 = 1 and problem_status='评估未通过'
+	and t2.vcordercode=? and t1.original_order_code!=?
+	${sqlStr}
+	GROUP BY t1.cluster_code,t1.question_count,t1.city,t1.cluster_longitude,t1.cluster_latitude,t1.involve_site,t1.data_source,
+	t1.home_grid,t1.special_label,t1.cover_scene,t1.value_label,t1.file_name,t1.question_type,t1.first_analysis,t1.optimize_proposal,
+	t1.first_proposal,t1.reason_classify,t1.first_proposal_type,t1.detail_analysis,t1.detail_proposal,t1.detail_reason,t1.detail_proposal_type,
+	t1.trim_village,t1.property,t1.target,t1.is_solved,t1.handle_state,t1.question_date,t1.question_section
+</sql>
+
+<sql name="updateFailureTime">
+     update lte_order_track set failure_time = failure_time + 3 where order_code = ?
+</sql>
+
+<sql name="updateNullClusterQuestion">
+        update lte_cluster_question
+        set first_analysis='',
+            first_proposal='',
+            reason_classify='',
+            first_proposal_type='',
+            detail_analysis='',
+            detail_proposal='',
+            detail_proposal_type=''
+        where
+        cluster_code in(${datas})
+</sql>
+
+<sql name="updateClusterState">
+    update lte_cluster_question set handle_state = ?,order_code=? where cluster_code in (${datas})
+</sql>
+
+<sql name="saveLog">
+        insert into lte_proposal_log(is_success, push_xml, return_xml, flow_code, question_code, create_date, return_content) values
+        (?,?,?,?,?,?,?)
+</sql>
+
+<sql name="queryClusterTypeByClusterCode">
+        SELECT
+        q.question_type
+        FROM
+        lte_cluster_question q
+        WHERE
+        q.order_code=?
+        and
+        q.question_date = (
+        SELECT
+        min(c.question_date)
+        FROM
+        lte_cluster_question c
+        WHERE
+        c.order_code=?
+        ) limit 1
+</sql>
+
+<sql name="updateOrderTrackInfo">
+        UPDATE lte_order_track
+            SET title = ?,
+            content = ?,
+            create_date = ?,
+            city = ?,
+            ${sqlStr}
+            handle_state = ?,
+            dispatcher = ?,
+            file_path = ?
+        WHERE
+          order_code = ?
+</sql>
+
+<sql name="updateXLproInfo">
+          UPDATE ${tableName2} a
+          SET xl_state = ?,
+              order_code = ?
+          FROM ${tableName1} b WHERE a.vcproblemnum=b.vcproblemnum
+</sql>
+
+<sql name="delteTable1">
+        drop table if exists ${tableName1}
+</sql>
+
+<sql name="updatePlbOptimization">
+        UPDATE f_et_plb_optimization_new
+        SET intstatus = 3
+        where EXISTS (SELECT 1 FROM lte_cluster_question l WHERE l.order_code=? AND l.cluster_code = vcjlplbnum)
+</sql>
+
+<sql name="deleteTempQuestionCode">
+        delete from lte_temp_question_code
+</sql>
+
+<sql name="saveTempQuestionCode">
+         insert into lte_temp_question_code(question_code)
+         select question_code
+         from ${tablename}
+
+</sql>
+
+<sql name="queryNullClusterCodes">
+        select distinct cc.question_code from
+        (select
+                CASE
+                WHEN a.vcjlplbnum is null or a.vcjlplbnum='' THEN '没有所属聚类编号'
+                ELSE
+                a.vcjlplbnum
+                END cluster_code,c.question_code
+                from lte_temp_question_code c left join f_et_plb_order_temp a
+                on  c.question_code=a.vcproblemnum
+        order by c.temp_id) cc WHERE cc.cluster_code='没有所属聚类编号'
+</sql>
+
+<sql name="queryNullmtCodes2">
+
+        select
+            count(1)
+        from
+        ${table_name}
+        where
+        (vcproblemnum2 in (${datas})) or (vcproblemnum in (${datas}))
+
+</sql>
+
+<sql name="queryNullmtCodes">
+        select
+            count(1)
+        from
+        ${table_name}
+        where
+        vcproblemnum2=? or vcproblemnum = ?
+
+</sql>
+
+<sql name="queryClusterCodes">
+        select
+        CASE WHEN n.intstatus=3 THEN '历史已派单，处理中，聚类编号为:'||vcjlplbnum ELSE n.vcjlplbnum end vcjlplbnum,
+        CASE WHEN n.intstatus=3 THEN '历史已派单，处理中' ELSE n.vcjlplbnum end vcjlplbnum2,
+        cc.question_code 问题点
+        from f_et_plb_order_temp n
+        RIGHT join
+        lte_temp_question_code as cc on cc.question_code=n.vcproblemnum
+        order by
+        cc.temp_id asc
+</sql>
+
+<sql name="orderQueryProblem">
+	select * from(
+	select CASE WHEN n.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||vcjlplbnum
+	WHEN n.intstatus=3 and p.problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||vcjlplbnum 
+	ELSE n.vcjlplbnum end vcjlplbnum,
+	CASE WHEN n.intstatus=3 THEN '历史已派单，处理中' ELSE n.vcjlplbnum end vcjlplbnum2,
+	r.vcproblemnum,n.intstatus,r.rownum,r.sheetname
+	from ${orderTableName} r left join f_et_plb_order_temp n on n.vcproblemnum=r.vcproblemnum 
+	left join lte_cluster_question p on n.vcjlplbnum=p.cluster_code
+	where r.sheetname=?) p
+	group by vcjlplbnum,vcjlplbnum2,vcproblemnum,intstatus,rownum,sheetname
+</sql>
+
+<sql name="rkhcExtTable">
+ 	CREATE EXTERNAL TABLE ${tableName}
+			(
+			vcproblemnum varchar(200),
+			sheetname varchar(200),
+			rownum int,
+			flong float8,
+			flat float8
+			)
+			location ('${externalPathStr}') format 'csv' (delimiter '|' null '') 
+			log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
+
+<sql name="existTable">
+        select count(1) from pg_class where relname = ?
+</sql>
+
+<sql name="createProTest">
+	create table f_et_plb_vcpro_vcjl_test (vcpronumber varchar,vcljnumber varchar)
+</sql>
+
+<sql name="updateState">
+        update f_et_plb_vcjnullnumber c
+        set
+         state=1
+        where vcproblemnum in 
+
+</sql>
+
+<sql name="createTempXLpronumber">
+       CREATE TABLE ${tableName1}(vcjlplbnum  varchar,vcproblemnum varchar,vcplbtype varchar,intstatus int4,vcordercode varchar) with (appendonly=true,orientation=row) distributed randomly 
+</sql>
+
+<sql name="saveTempXLpronumber">
+	INSERT INTO ${tableName1} (vcjlplbnum,vcproblemnum,vcplbtype,intstatus,vcordercode)
+	select c.vcjlplbnum,a.vcproblemnum,c.vcplbtype,c.intstatus,c.vcordercode
+	from ${tableName2} a,(SELECT b.vcjlplbnum,b.vcproblemnum,d.vcplbtype,b.intstatus,d.vcordercode 
+	FROM f_et_plb_order_temp b ,f_et_plb_vcpro_optimization d WHERE b.optid=d.optid and b.vccity= ? and d.vcordercode=? ) c
+	WHERE a.xl_state=0 AND a.vcproblemnum=c.vcproblemnum
+</sql>
+
+<sql name="queryXLpronumber">
+        SELECT
+        count(1)
+        FROM
+        ${tableName1}
+        WHERE
+        vcplbtype=?
+        and vcordercode=?
+</sql>
+
+<sql name="exportXLSDFG">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgrida "网格A",a.vcgridb "网格B",a.vcgridc "网格C",a.rd_name 楼宇名称,a.type 问题类型,
+	a.vcgridid "楼宇ID",a.sumcount 楼宇采样点总数,a.usercount 用户数,a.avgrsrp "楼宇平均RSRP",a.coveragerate 楼宇覆盖率,
+	a.wcount 楼宇弱覆盖采样点数,a.avgrsrq "楼宇平均RSRQ",a.avgmod3 楼宇干扰概率,a.mod3count 楼宇模三干扰采样点数,a.avgcqi "楼宇平均CQI",
+	a.badcqirate "楼宇CQI低于6比例",a.cqi6count "楼宇CQI低于6的采样点数",a.avgup_sinr "楼宇平均上行SINR",a.badup_sinrrate "楼宇平均上行SINR低于0比例",
+	a.up_sinr0count "楼宇内上行SINR低于0采样点数",a.edgecoveragerate_bad 楼宇覆盖空洞比例,a.multiplecoveragerate_bad 楼宇重叠覆盖比例,
+	a.vccgi "主覆盖小区CGI",a.ci_main "主覆盖小区ID",a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均rsrp",
+	a.ci_bad "问题小区ID",a.cellname_bad "问题小区名",a.coveragerate_bad 问题小区覆盖率,a.wcount_bad 问题小区弱覆盖采样点数,
+	a.avgta_bad "问题小区平均TA",a.avgphr_bad "问题小区平均PHR",a.wtxqedgecoveragerate_bad 问题小区覆盖空洞,a.wtxqmultiplecoveragerate_bad 问题小区重叠覆盖
+	from xl_lyrfg_cell_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportHYXLSDFG">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgrida "网格A",a.vcgridb "网格B",a.vcgridc "网格C",a.rd_name 楼宇名称,a.type 问题类型,
+	a.vcgridid "楼宇ID",a.sumcount 楼宇采样点总数,a.usercount 用户数,a.avgrsrp "楼宇平均RSRP",a.coveragerate 楼宇覆盖率,
+	a.wcount 楼宇弱覆盖采样点数,a.avgrsrq "楼宇平均RSRQ",a.avgmod3 楼宇干扰概率,a.mod3count 楼宇模三干扰采样点数,a.avgcqi "楼宇平均CQI",
+	a.badcqirate "楼宇CQI低于6比例",a.cqi6count "楼宇CQI低于6的采样点数",a.avgup_sinr "楼宇平均上行SINR",a.badup_sinrrate "楼宇平均上行SINR低于0比例",
+	a.up_sinr0count "楼宇内上行SINR低于0采样点数",a.edgecoveragerate_bad 楼宇覆盖空洞比例,a.multiplecoveragerate_bad 楼宇重叠覆盖比例,
+	a.vccgi "主覆盖小区CGI",a.ci_main "主覆盖小区ID",a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均rsrp",
+	a.ci_bad "问题小区ID",a.cellname_bad "问题小区名",a.coveragerate_bad 问题小区覆盖率,a.wcount_bad 问题小区弱覆盖采样点数,
+	a.avgta_bad "问题小区平均TA",a.avgphr_bad "问题小区平均PHR",a.wtxqedgecoveragerate_bad 问题小区覆盖空洞,a.wtxqmultiplecoveragerate_bad 问题小区重叠覆盖
+	from xl_lyrfg_cell_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join mt_gdzrwg_week_month d on (a.vcgrida=d.threeprimarygrid or a.vcgridb=d.threeprimarygrid or a.vcgridc=d.threeprimarygrid)
+	and d.cityname=c.cityname and twoprimarygrid=?
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="queryXLbyorder">
+     select vcjlplbnum 聚类编号 from  ${tableName1} where intstatus <> 3
+</sql>
+
+<sql name="createMaxoptid">
+	create table f_et_plb_vcpro_vcjl_maxoptid as
+	select max(optid) optid from f_et_plb_order_temp group by vcjlplbnum LIMIT 0
+</sql>
+
+<sql name="createMaxProJl">
+	create table f_et_plb_vcpro_vcjl as
+	select a.* from f_et_plb_order_temp a right join f_et_plb_vcpro_vcjl_maxoptid b on b.optid=a.optid LIMIT 0
+</sql>
+
+<sql name="createXLTempTable">
+       create table
+       ${tableName}
+        as
+        select * from  ${tableName2} LIMIT 0
+</sql>
+
+<sql name="addXLstate">
+    alter table ${tableName} add column ${xl_state} int4
+</sql>
+
+<sql name="addXLorder">
+        alter table ${tableName} add column ${order_code} VARCHAR
+</sql>
+
+<sql name="delteTable">
+        drop table if exists ${tableName}
+</sql>
+
+
+<sql name="createUniqueprotable">
+       create table
+       f_et_plb_vcpro_optimization
+       as
+       select
+        a.*
+        from
+        f_et_plb_optimization_new a
+        LIMIT 0
+</sql>
+
+ <sql name="saveUniqueprotable">
+        INSERT INTO f_et_plb_vcpro_optimization
+        select
+        a.*
+        from
+        f_et_plb_optimization_new a,
+        f_et_plb_order_temp b
+        where a.optid=b.optid
+</sql>
+
+<sql name="deleteMaxoptid">
+        delete from f_et_plb_vcpro_vcjl_maxoptid
+</sql>
+
+<sql name="deleteMaxProJl">
+        delete from f_et_plb_vcpro_vcjl
+</sql>
+
+<sql name="saveMaxoptid">
+        INSERT INTO f_et_plb_vcpro_vcjl_maxoptid
+        select optid from (select optid,rank() OVER (PARTITION BY vcjlplbnum,n ORDER BY optid DESC)n1 from(select optid,vcjlplbnum,
+				rank() OVER (PARTITION BY vcjlplbnum ORDER BY fplbbalance DESC)n 
+				from f_et_plb_order_temp
+        ) p where n=1  )p1 where n1=1 and optid<>0
+</sql>
+
+<sql name="saveMaxProJl">
+	INSERT INTO f_et_plb_vcpro_vcjl
+	select a.* from f_et_plb_order_temp a right join f_et_plb_vcpro_vcjl_maxoptid b on b.optid=a.optid
+</sql>
+
+<sql name="updatePlbOrdertemp">
+        UPDATE f_et_plb_order_temp
+        SET intstatus = 3
+      where EXISTS(SELECT 1 FROM lte_cluster_question l WHERE  l.cluster_code = vcjlplbnum and order_code <> '' )  and  intstatus <> 3
+</sql>
+
+<sql name="updateBycgi">
+       UPDATE f_et_plb_order_temp
+        SET intstatus = 3
+          where
+          vccgi
+          in (select  involve_site from lte_cluster_question
+          where order_code in
+          (select order_code from lte_order_track where create_date >'2016-12-01' and create_date <'2016-12-08')
+          and  involve_site <>''
+          ) and vcjlplbnum LIKE '%|_%|_%|_%|_%' ESCAPE '|'
+</sql>
+
+<sql name="saveProposal">
+        INSERT INTO lte_proposal (
+        question_code,
+        create_date,
+        city,
+        MONTH,
+        data_source,
+        home_grid,
+        file_name,
+        question_type,
+        question_section,
+        involve_site,
+        longitude,
+        latitude,
+        reason_analysis,
+        cluster_code,
+        optimize_proposal,
+        refine_proposal,
+        root_analysis,
+        question_date,
+        is_show,
+        type
+        )
+         SELECT
+				A .vcproblemnum question_code,
+                date_trunc('second', now()) create_date,
+                case
+                when a.vccity is not null then a.vccity else '其它' end city,
+                a.intdateid,
+                case when a.vcdatasource is not null then a.vcdatasource else split_part(a.vcproblemnum,'-',2) end  data_source,
+                case when a.vcgridid is not null then a.vcgridid else '' end home_grid,
+                case when  a.vcfilename is not null then a.vcfilename else '' end file_name,
+                case when a.vcjltype  is not null then a.vcjltype else '' end question_type,
+                case when a.vcroadname is not null then a.vcroadname else '' end question_section,
+                case when a.vccgi is not null then a.vccgi else '' end involve_site,
+                a.fjllonb longitude,
+                a.fjllat latitude,
+                case when a.vcreason is not null then a.vcreason else '' end reason_analysis,
+                case when a.vcjlplbnum is not null then a.vcjlplbnum else '' end cluster_code,
+                case when a.vcSuggest is not null then a.vcSuggest else '' end optimize_proposal,
+                case when a.vcSuggest is not null then a.vcSuggest else '' end refine_proposal,
+                case when a.vcReasonFrom is not null then a.vcReasonFrom else '' end root_analysis,
+                case when to_date(a.datetime,'YYYY-MM-DD HH24-MI-SS') is not null then to_date(a.datetime,'YYYY-MM-DD HH24-MI-SS') else date_trunc('second', now()) end datetime,
+                1 number1,
+                2 number1
+        FROM
+                f_et_plb_order_temp a
+    		GROUP BY
+				a.vcproblemnum,
+				a.vccity,
+				a.intdateid,
+				a.vcdatasource,
+				a.vcgridid,
+				a.vcfilename,
+				a.vcjltype,
+				a.vcroadname,
+				a.vccgi,
+				a.fjllonb,
+				a.fjllat,
+				a.vcreason,
+				a.vcjlplbnum,
+				a.vcsuggest,
+				a.vcreasonfrom,
+				a.datetime
+</sql>
+
+<sql name="updatePlbOrdertemp">
+        UPDATE f_et_plb_order_temp
+        SET intstatus = 3
+      where EXISTS(SELECT 1 FROM lte_cluster_question l WHERE  l.cluster_code = vcjlplbnum and order_code <> '' )  and  intstatus <> 3 
+</sql>
+
+<sql name="savegtrfgCode">
+        INSERT INTO xl_gtrfg_cell_month (
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgtname,
+        gtdir,
+        vcgridname,
+        vctype,
+        vcgridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgrsrq,
+        avgmod3,
+        mod3count,
+        avgcqi,
+        badcqirate,
+        cqi6count,
+        avgup_sinr,
+        badup_sinrrate,
+        up_sinr0count,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        vccgi,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        coveragerate_bad,
+        wcount_bad,
+        avgta_bad,
+        avgphr_bad,
+        wtxqedgecoveragerate_bad,
+        wtxqmultiplecoveragerate_bad,
+        intpid,
+        xl_state
+        )
+        select
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgtname,
+        gtdir,
+        vcgridname,
+        vctype,
+        vcgridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgrsrq,
+        avgmod3,
+        mod3count,
+        avgcqi,
+        badcqirate,
+        cqi6count,
+        avgup_sinr,
+        badup_sinrrate,
+        up_sinr0count,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        vccgi,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        coveragerate_bad,
+        wcount_bad,
+        avgta_bad,
+        avgphr_bad,
+        wtxqedgecoveragerate_bad,
+        wtxqmultiplecoveragerate_bad,
+        intpid,
+        0
+        from
+        yt_gtrfg_cell_month a
+        where
+        not exists (select 1 from xl_gtrfg_cell_month q  WHERE q.vcproblemnum=a.vcproblemnum)
+</sql>
+
+<sql name="savelyrfgCode">
+        INSERT INTO xl_lyrfg_cell_month (
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgrida,
+        vcgridb,
+        vcgridc,
+        rd_name,
+        type,
+        vcgridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgrsrq,
+        avgmod3,
+        mod3count,
+        avgcqi,
+        badcqirate,
+        cqi6count,
+        avgup_sinr,
+        badup_sinrrate,
+        up_sinr0count,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        vccgi,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        coveragerate_bad,
+        wcount_bad,
+        avgta_bad,
+        avgphr_bad,
+        wtxqedgecoveragerate_bad,
+        wtxqmultiplecoveragerate_bad,
+        intpid,
+        xl_state
+        )
+        select
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgrida,
+        vcgridb,
+        vcgridc,
+        rd_name,
+        type,
+        vcgridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgrsrq,
+        avgmod3,
+        mod3count,
+        avgcqi,
+        badcqirate,
+        cqi6count,
+        avgup_sinr,
+        badup_sinrrate,
+        up_sinr0count,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        vccgi,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        coveragerate_bad,
+        wcount_bad,
+        avgta_bad,
+        avgphr_bad,
+        wtxqedgecoveragerate_bad,
+        wtxqmultiplecoveragerate_bad,
+        intpid,
+        0
+        from
+        yt_lyrfg_cell_month a
+        where
+        not exists (select 1 from xl_lyrfg_cell_month q  WHERE q.vcproblemnum=a.vcproblemnum)
+</sql>
+
+<sql name="savexldlgrCode">
+        INSERT INTO xl_xldlgr_grid_month (
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgrida,
+        vcgridb,
+        vcgridc,
+        rd_name,
+        type,
+        gridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgmod3,
+        mod3count,
+        cgi_main,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        avgmod3_bad,
+        mod3count_bad,
+        pci_bad,
+        pci_ifterfere,
+        avgrsrp_ifterfere,
+        avgrsrp_bad,
+        coveragerate_bad,
+        avgta_bad,
+        avgphr_bad,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        intpid,
+        xl_state
+        )
+        select
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgrida,
+        vcgridb,
+        vcgridc,
+        rd_name,
+        type,
+        gridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgmod3,
+        mod3count,
+        cgi_main,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        avgmod3_bad,
+        mod3count_bad,
+        pci_bad,
+        pci_ifterfere,
+        avgrsrp_ifterfere,
+        avgrsrp_bad,
+        coveragerate_bad,
+        avgta_bad,
+        avgphr_bad,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        intpid,
+        0
+        from
+        yt_xldlgr_grid_month a
+        where
+        not exists (select 1 from xl_xldlgr_grid_month q  WHERE q.vcproblemnum=a.vcproblemnum)
+</sql>
+
+<sql name="savexldlfgCode">
+        INSERT INTO xl_xldlfg_grid_month (
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgrida,
+        vcgridb,
+        vcgridc,
+        rd_name,
+        type,
+        gridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        cgi_main,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        coveragerate_bad,
+        wcount_bad,
+        avgta_bad,
+        avgphr_bad,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        intpid,
+        xl_state
+        )
+        select
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datatime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgrida,
+        vcgridb,
+        vcgridc,
+        rd_name,
+        type,
+        gridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        cgi_main,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        ci_bad,
+        cellname_bad,
+        coveragerate_bad,
+        wcount_bad,
+        avgta_bad,
+        avgphr_bad,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        intpid,
+        0
+        from
+        yt_xldlfg_grid_month a
+        where
+        not exists (select 1 from xl_xldlfg_grid_month q  WHERE q.vcproblemnum=a.vcproblemnum)
+</sql>
+
+<sql name="savegtgrCode">
+        INSERT INTO xl_gtgr_cell_month (
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datetime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgtname,
+        gt_dir,
+        vcgridname,
+        vctype,
+        vcgridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgrsrq,
+        avgmod3,
+        mod3count,
+        avgcqi,
+        badcqirate,
+        cqi6count,
+        avgup_sinr,
+        badup_sinrrate,
+        up_sinr0count,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        cgi_main,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        vccellid,
+        vccellname,
+        avgmod3_bad,
+        mod3count_bad,
+        pci_bad,
+        pci_ifterfere,
+        avgrsrp_ifterfere,
+        avgrsrp_bad,
+        coveragerate_bad,
+        avgta_bad,
+        avgphr_bad,
+        wtxqedgecoveragerate_bad,
+        wtxqmultiplecoveragerate_bad,
+        intpid,
+        xl_state
+        )
+        select
+        filemaik,
+        vcproblemnum,
+        intcityid,
+        flonb,
+        flat,
+        datetime,
+        intyear,
+        intmonth,
+        intday,
+        inttime,
+        vcgtname,
+        gt_dir,
+        vcgridname,
+        vctype,
+        vcgridid,
+        sumcount,
+        usercount,
+        avgrsrp,
+        coveragerate,
+        wcount,
+        avgrsrq,
+        avgmod3,
+        mod3count,
+        avgcqi,
+        badcqirate,
+        cqi6count,
+        avgup_sinr,
+        badup_sinrrate,
+        up_sinr0count,
+        edgecoveragerate_bad,
+        multiplecoveragerate_bad,
+        cgi_main,
+        ci_main,
+        cellname_main,
+        sumcount_main,
+        avgrsrp_main,
+        vccellid,
+        vccellname,
+        avgmod3_bad,
+        mod3count_bad,
+        pci_bad,
+        pci_ifterfere,
+        avgrsrp_ifterfere,
+        avgrsrp_bad,
+        coveragerate_bad,
+        avgta_bad,
+        avgphr_bad,
+        wtxqedgecoveragerate_bad,
+        wtxqmultiplecoveragerate_bad,
+        intpid,
+        0
+        from
+        yt_gtgr_cell_month a
+        where
+        not exists (select 1 from  xl_gtgr_cell_month q  WHERE q.vcproblemnum=a.vcproblemnum)
+</sql>
+
+<sql name="saveCjnullnumber">
+        INSERT INTO f_et_plb_vcjnullnumber (
+        order_code,
+        vcproblemnum,
+        tables,
+        city,
+        protype,
+        protime,
+        create_time,
+        state
+        ) values
+        
+</sql>
+
+<sql name="exportXLGR">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgrida "网格A",a.vcgridb "网格B",a.vcgridc "网格C",a.rd_name 道路名称,a.type 问题类型,
+	a.gridid "道路栅格ID",a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,
+	a.wcount 栅格弱覆盖采样点数,a.avgmod3 栅格干扰概率,a.mod3count 栅格模三干扰采样点数,a.cgi_main "主覆盖小区CGI",a.ci_main 主覆盖小区号,
+	a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",a.ci_bad 问题小区号,
+	a.cellname_bad 问题小区名,a.avgmod3_bad 问题小区干扰概率,a.mod3count_bad 问题小区模三干扰采样点数,a.pci_bad "问题小区PCI",
+	a.pci_ifterfere "干扰小区PCI",a.avgrsrp_ifterfere "干扰小区平均RSRP",a.avgrsrp_bad "问题小区平均RSRP",a.coveragerate_bad 问题小区覆盖率,
+	a.avgta_bad "问题小区平均TA",a.avgphr_bad "问题小区平均PHR",a.edgecoveragerate_bad 问题小区覆盖空洞比例,a.multiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_xldlgr_grid_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportHYXLGR">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgrida "网格A",a.vcgridb "网格B",a.vcgridc "网格C",a.rd_name 道路名称,a.type 问题类型,
+	a.gridid "道路栅格ID",a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,
+	a.wcount 栅格弱覆盖采样点数,a.avgmod3 栅格干扰概率,a.mod3count 栅格模三干扰采样点数,a.cgi_main "主覆盖小区CGI",a.ci_main 主覆盖小区号,
+	a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",a.ci_bad 问题小区号,
+	a.cellname_bad 问题小区名,a.avgmod3_bad 问题小区干扰概率,a.mod3count_bad 问题小区模三干扰采样点数,a.pci_bad "问题小区PCI",
+	a.pci_ifterfere "干扰小区PCI",a.avgrsrp_ifterfere "干扰小区平均RSRP",a.avgrsrp_bad "问题小区平均RSRP",a.coveragerate_bad 问题小区覆盖率,
+	a.avgta_bad "问题小区平均TA",a.avgphr_bad "问题小区平均PHR",a.edgecoveragerate_bad 问题小区覆盖空洞比例,a.multiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_xldlgr_grid_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join mt_gdzrwg_week_month d on (a.vcgrida=d.threeprimarygrid or a.vcgridb=d.threeprimarygrid or a.vcgridc=d.threeprimarygrid)
+	and d.cityname=c.cityname and twoprimarygrid=?
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportXLRFG">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgrida "网格A",a.vcgridb "网格B",a.vcgridc "网格C",a.rd_name 道路名称,a.type 问题类型,
+	a.gridid "道路栅格ID",a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,a.wcount 栅格弱覆盖采样点数,
+	a.cgi_main "主覆盖小区CGI",a.ci_main 主覆盖小区号,a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",
+	a.ci_bad 问题小区号,a.cellname_bad 问题小区名,a.coveragerate_bad 问题小区覆盖率,a.wcount_bad 问题小区弱覆盖采样点数,a.avgta_bad "问题小区平均TA",
+	a.avgphr_bad "问题小区平均PHR",a.edgecoveragerate_bad 问题小区覆盖空洞比例,a.multiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_xldlfg_grid_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportHYXLRFG">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgrida "网格A",a.vcgridb "网格B",a.vcgridc "网格C",a.rd_name 道路名称,a.type 问题类型,
+	a.gridid "道路栅格ID",a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,a.wcount 栅格弱覆盖采样点数,
+	a.cgi_main "主覆盖小区CGI",a.ci_main 主覆盖小区号,a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",
+	a.ci_bad 问题小区号,a.cellname_bad 问题小区名,a.coveragerate_bad 问题小区覆盖率,a.wcount_bad 问题小区弱覆盖采样点数,a.avgta_bad "问题小区平均TA",
+	a.avgphr_bad "问题小区平均PHR",a.edgecoveragerate_bad 问题小区覆盖空洞比例,a.multiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_xldlfg_grid_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join mt_gdzrwg_week_month d on (a.vcgrida=d.threeprimarygrid or a.vcgridb=d.threeprimarygrid or a.vcgridc=d.threeprimarygrid)
+	and d.cityname=c.cityname and twoprimarygrid=?
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportXLGTGR">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,a.flonb 经度,
+	a.flat 纬度,a.datetime 时间,a.vcgtname 高铁名称,a.gt_dir 高铁方向,a.vcgridname 栅格名称,a.vctype 问题类型,a.vcgridid "栅格ID",
+	a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,a.wcount 栅格弱覆盖采样点数,
+	a.avgrsrq "栅格平均RSRQ",a.avgmod3 栅格干扰概率,a.mod3count 栅格模三干扰采样点数,a.avgcqi "栅格平均CQI",a.badcqirate "栅格CQI低于6比例",
+	a.cqi6count "栅格CQI低于6的采样点数",a.avgup_sinr "栅格平均上行SINR",a.badup_sinrrate "栅格平均上行SINR低于0比例",a.up_sinr0count "栅格内上行SINR低于0采样点数",
+	a.edgecoveragerate_bad 栅格覆盖空洞比例,a.multiplecoveragerate_bad 栅格重叠覆盖比例,a.cgi_main "主覆盖小区CGI",a.ci_main 主覆盖小区号,
+	a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",a.vccellid 问题小区号,a.vccellname 问题小区名,
+	a.avgmod3_bad 问题小区干扰概率,a.mod3count_bad 问题小区模三干扰采样点数,a.pci_bad "问题小区PCI",a.pci_ifterfere "干扰小区PCI",
+	a.avgrsrp_ifterfere "干扰小区平均RSRP",a.avgrsrp_bad "问题小区平均RSRP",a.coveragerate_bad 问题小区覆盖率,a.avgta_bad "问题小区平均TA",
+	a.avgphr_bad "问题小区平均PHR",a.wtxqedgecoveragerate_bad 问题小区覆盖空洞比例,a.wtxqmultiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_gtgr_cell_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportHYXLGTGR">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,a.flonb 经度,
+	a.flat 纬度,a.datetime 时间,a.vcgtname 高铁名称,a.gt_dir 高铁方向,a.vcgridname 栅格名称,a.vctype 问题类型,a.vcgridid "栅格ID",
+	a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,a.wcount 栅格弱覆盖采样点数,
+	a.avgrsrq "栅格平均RSRQ",a.avgmod3 栅格干扰概率,a.mod3count 栅格模三干扰采样点数,a.avgcqi "栅格平均CQI",a.badcqirate "栅格CQI低于6比例",
+	a.cqi6count "栅格CQI低于6的采样点数",a.avgup_sinr "栅格平均上行SINR",a.badup_sinrrate "栅格平均上行SINR低于0比例",a.up_sinr0count "栅格内上行SINR低于0采样点数",
+	a.edgecoveragerate_bad 栅格覆盖空洞比例,a.multiplecoveragerate_bad 栅格重叠覆盖比例,a.cgi_main "主覆盖小区CGI",a.ci_main 主覆盖小区号,
+	a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",a.vccellid 问题小区号,a.vccellname 问题小区名,
+	a.avgmod3_bad 问题小区干扰概率,a.mod3count_bad 问题小区模三干扰采样点数,a.pci_bad "问题小区PCI",a.pci_ifterfere "干扰小区PCI",
+	a.avgrsrp_ifterfere "干扰小区平均RSRP",a.avgrsrp_bad "问题小区平均RSRP",a.coveragerate_bad 问题小区覆盖率,a.avgta_bad "问题小区平均TA",
+	a.avgphr_bad "问题小区平均PHR",a.wtxqedgecoveragerate_bad 问题小区覆盖空洞比例,a.wtxqmultiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_gtgr_cell_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join mt_gdzrwg_week_month d on (a.vcgrida=d.threeprimarygrid or a.vcgridb=d.threeprimarygrid or a.vcgridc=d.threeprimarygrid)
+	and d.cityname=c.cityname and twoprimarygrid=?
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportXLGTRFG">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgtname 高铁名称,a.gtdir 高铁方向,a.vcgridname 栅格名称,a.vctype 问题类型,a.vcgridid "栅格ID",
+	a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,a.wcount 栅格弱覆盖采样点数,
+	a.avgrsrq "栅格平均RSRQ",a.avgmod3 栅格干扰概率,a.mod3count 栅格模三干扰采样点数,a.avgcqi "栅格平均CQI",a.badcqirate "栅格CQI低于6比例",
+	a.cqi6count "栅格CQI低于6的采样点数",a.avgup_sinr "栅格平均上行SINR",a.badup_sinrrate "栅格平均上行SINR低于0比例",
+	a.up_sinr0count "栅格内上行SINR低于0采样点数",a.edgecoveragerate_bad 栅格覆盖空洞比例,a.multiplecoveragerate_bad 栅格重叠覆盖比例,
+	a.vccgi "主覆盖小区CGI",a.ci_main 主覆盖小区号,a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",
+	a.ci_bad 问题小区号,a.cellname_bad 问题小区名,a.coveragerate_bad 问题小区覆盖率,a.wcount_bad 问题小区弱覆盖采样点数,a.avgta_bad "问题小区平均TA",
+	a.avgphr_bad "问题小区平均PHR",a.wtxqedgecoveragerate_bad 问题小区覆盖空洞比例,a.wtxqmultiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_gtrfg_cell_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype='${vcplbtype}'
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<sql name="exportHYXLGTRFG">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,a.vcproblemnum "编号ID",c.cityname 地市,
+	a.flonb 经度,a.flat 纬度,a.datatime 时间,a.vcgtname 高铁名称,a.gtdir 高铁方向,a.vcgridname 栅格名称,a.vctype 问题类型,a.vcgridid "栅格ID",
+	a.sumcount 栅格采样点总数,a.usercount 栅格用户数,a.avgrsrp "栅格平均RSRP",a.coveragerate 栅格覆盖率,a.wcount 栅格弱覆盖采样点数,
+	a.avgrsrq "栅格平均RSRQ",a.avgmod3 栅格干扰概率,a.mod3count 栅格模三干扰采样点数,a.avgcqi "栅格平均CQI",a.badcqirate "栅格CQI低于6比例",
+	a.cqi6count "栅格CQI低于6的采样点数",a.avgup_sinr "栅格平均上行SINR",a.badup_sinrrate "栅格平均上行SINR低于0比例",
+	a.up_sinr0count "栅格内上行SINR低于0采样点数",a.edgecoveragerate_bad 栅格覆盖空洞比例,a.multiplecoveragerate_bad 栅格重叠覆盖比例,
+	a.vccgi "主覆盖小区CGI",a.ci_main 主覆盖小区号,a.cellname_main 主覆盖小区名,a.sumcount_main 主覆盖小区采样点总数,a.avgrsrp_main "主覆盖小区平均RSRP",
+	a.ci_bad 问题小区号,a.cellname_bad 问题小区名,a.coveragerate_bad 问题小区覆盖率,a.wcount_bad 问题小区弱覆盖采样点数,a.avgta_bad "问题小区平均TA",
+	a.avgphr_bad "问题小区平均PHR",a.wtxqedgecoveragerate_bad 问题小区覆盖空洞比例,a.wtxqmultiplecoveragerate_bad 问题小区重叠覆盖比例
+	from xl_gtrfg_cell_month a
+	inner join ${tableName1} b on a.vcproblemnum=b.vcproblemnum and b.vcplbtype=?
+	left join f_et_plb_city_number c on a.intcityid=c.intcityid
+	left join mt_gdzrwg_week_month d on (a.vcgrida=d.threeprimarygrid or a.vcgridb=d.threeprimarygrid or a.vcgridc=d.threeprimarygrid)
+	and d.cityname=c.cityname and twoprimarygrid=?
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+</sql>
+
+<!-- 创建外部表语句 -->
+<sql name="createExtCsv">
+	create external table ${tableName}(
+		question_code varchar,msgid varchar 
+	) location ('gpfdist://192.168.36.120:8081/${filename}') format 'csv' (delimiter '|' null '')
+		log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
+
+<!-- 删除外部表语句 -->
+<sql name="deleteExtCsv">
+	DROP EXTERNAL TABLE IF EXISTS  ext_update_
+</sql>
+
+<sql name="updateMaxJlType">
+	update lte_cluster_question t set vcproblemtarget = t1.vcproblemtarget from (
+		select vcjlplbnum,intplbtype,vcproblemtarget,rank() OVER (PARTITION BY vcjlplbnum ORDER BY 
+		case  when intplbtype=10517 then 17 when intplbtype=10503 then 3 when intplbtype=10502 then 2 
+		when intplbtype=10521 then 21 when intplbtype=10510 then 10 when intplbtype=10501 then 1 
+		when intplbtype=10507 then 7 when intplbtype=10504 then 4 when intplbtype=10511 then 11 when intplbtype=10506 then 6 
+		when intplbtype=10519 then 19 when intplbtype=10514 then 14 when intplbtype=10518 then 18 
+		when intplbtype=10505 then 5 when intplbtype=10516 then 16 when intplbtype=10512 then 12 
+		when intplbtype=10513 then 13 when intplbtype=10520 then 20 when intplbtype=10509 then 9 
+		when intplbtype=10515 then 15 when intplbtype=10508 then 8 else 0 end) num 
+		from f_et_plb_result_new) t1 where t1.num=1 and t.cluster_code=t1.vcjlplbnum
+</sql>
+
+<!-- 防止重复派单，删除数据 -->
+<sql name="deletecountqwzb">
+delete from lte_order_problem_count where vcordercode=? 
+</sql>
+
+<!-- 全网指标预统语句 -->
+<sql name="countqwzb">
+insert into lte_order_problem_count(
+dtdatatime,
+vcordercode,
+vccity,
+intcountlte ,
+intcountgsm ,
+intltewxjtl ,
+intltewxdhl ,
+intltemrrfgxq ,
+intltecyzxq ,
+intltecgzxq ,
+intltecjzxq ,
+intltegfhkrxq ,
+intlteggrxq ,
+intltewxjtcxqyy ,
+intltewxjtcxqsp ,
+intltedxgxqyy ,
+intltedxgxqsp ,
+intlteqhcxq ,
+intltexxgsyxq ,
+intlteyhqhcxq ,
+intlteczqhcxq ,
+intltexzdslld2 ,
+intltexzdslld10 ,
+intltescdslld ,
+intltesjlb ,
+intlterfgld110 ,
+intlterfgld100 ,
+intltelxzld0 ,
+intltelxzcld3 ,
+intltegcdfgldgyxx ,
+intltegcdfgldxxxx ,
+intltewjtsj ,
+intltedhsj ,
+intlteqhsbsj ,
+intltecxrmossj ,
+intltertpdbsj ,
+intltehjjlsy ,
+intlteimszcsbsj ,
+intlteqhsyyhm ,
+intgsmgllxq ,
+intgsmwxjtl ,
+intgsmwxdhl ,
+intgsmzchwbl ,
+intgsmdlxqmx , 
+intgsmgllhzfgxq ,
+intgsmsffgxq ,
+intgsmlxzcld,
+intltesdfgxl ,
+intltegtfgxl ,
+intltedlgrxl ,
+intltedlfgxl ,
+intltegtgrxl,
+intltetsb4gfg,
+intltets4grfgxqzz,
+intltesxgdbxq,
+intltexxgdbxq,
+intlteqhc,
+intltegllwtyz,
+inttpgcdfg,
+intqwlyjzdsxq,
+intltelllxq,
+inttswtd
+) 
+select 
+x2.create_date,x2.order_code,x2.city,
+intcountlte+x1.intltesdfgxl+x1.intltegtfgxl+x1.intltedlgrxl+x1.intltedlfgxl+x1.intltegtgrxl+intltetsb4gfg+intltets4grfgxqzz,
+intcountgsm ,
+intltewxjtl ,
+intltewxdhl ,
+intltemrrfgxq ,
+intltecyzxq ,
+intltecgzxq ,
+intltecjzxq ,
+intltegfhkrxq ,
+intlteggrxq ,
+intltewxjtcxqyy ,
+intltewxjtcxqsp ,
+intltedxgxqyy ,
+intltedxgxqsp ,
+intlteqhcxq ,
+intltexxgsyxq ,
+intlteyhqhcxq ,
+intlteczqhcxq ,
+intltexzdslld2 ,
+intltexzdslld10 ,
+intltescdslld ,
+intltesjlb ,
+intlterfgld110 ,
+intlterfgld100 ,
+intltelxzld0 ,
+intltelxzcld3 ,
+intltegcdfgldgyxx ,
+intltegcdfgldxxxx ,
+intltewjtsj ,
+intltedhsj ,
+intlteqhsbsj ,
+intltecxrmossj ,
+intltertpdbsj ,
+intltehjjlsy ,
+intlteimszcsbsj ,
+intlteqhsyyhm ,
+intgsmgllxq ,
+intgsmwxjtl ,
+intgsmwxdhl ,
+intgsmzchwbl ,
+intgsmdlxqmx , 
+intgsmgllhzfgxq ,
+intgsmsffgxq ,
+intgsmlxzcld,
+x1.intltesdfgxl,
+x1.intltegtfgxl,
+x1.intltedlgrxl,
+x1.intltedlfgxl,
+x1.intltegtgrxl,
+intltetsb4gfg,
+intltets4grfgxqzz,
+intltesxgdbxq,
+intltexxgdbxq,
+intlteqhc,
+intltegllwtyz,
+inttpgcdfg,
+intqwlyjzdsxq,
+intltelllxq,
+inttswtd
+ from  (
+select 
+sum(case when sheetname in('GSM高流量小区（一周）','GSM无线接通率（一周出现大于3次低于目标值）小区','GSM无线掉话率（一周出现大于3次低于目标值）小区','GSM质差话务比例','倒流小区明细','2G高流量宏站无LTE覆盖小区','2G高流量室分无LTE覆盖小区','GSM连续质差路段') then 0 else 1 end) intcountlte,
+sum(case when sheetname in('GSM高流量小区（一周）','GSM无线接通率（一周出现大于3次低于目标值）小区','GSM无线掉话率（一周出现大于3次低于目标值）小区','GSM质差话务比例','倒流小区明细','2G高流量宏站无LTE覆盖小区','2G高流量室分无LTE覆盖小区','GSM连续质差路段') then 1 else 0 end) intcountgsm,
+sum(case when sheetname='LTE接通低小区' then 1 else 0 end) intltewxjtl,
+sum(case when sheetname='LTE掉线高小区' then 1 else 0 end) intltewxdhl,
+sum(case when sheetname='LTE切换差小区' then 1 else 0 end) intlteqhc,
+sum(case when sheetname='LTE MR弱覆盖小区' then 1 else 0 end) intltemrrfgxq,
+sum(case when sheetname='LTE超远站小区' then 1 else 0 end) intltecyzxq,
+sum(case when sheetname='LTE超高站小区' then 1 else 0 end) intltecgzxq,
+sum(case when sheetname='LTE超近站小区' then 1 else 0 end) intltecjzxq,
+sum(case when sheetname='高负荷待扩容小区（新算法）' then 1 else 0 end) intltegfhkrxq,
+sum(case when sheetname='高干扰小区' then 1 else 0 end) intlteggrxq,
+sum(case when sheetname='VoLTE无线接通差小区(语音)' then 1 else 0 end) intltewxjtcxqyy,
+sum(case when sheetname='VoLTE无线接通差小区(视频)' then 1 else 0 end) intltewxjtcxqsp,
+sum(case when sheetname='VoLTE E-RAB掉线高小区(语音)' then 1 else 0 end) intltedxgxqyy,
+sum(case when sheetname='VoLTE E-RAB掉线高小区(视频)' then 1 else 0 end) intltedxgxqsp,
+sum(case when sheetname='eSVRCC切换差小区' then 1 else 0 end) intlteqhcxq,
+sum(case when sheetname='VoLTE下行高时延小区' then 1 else 0 end) intltexxgsyxq,
+sum(case when sheetname='VOLTE用户切换差小区' then 1 else 0 end) intlteyhqhcxq,
+sum(case when sheetname='QCI2承载切换差小区' then 1 else 0 end) intlteczqhcxq,
+sum(case when sheetname='LTE下载低速率路段(<=2M)' then 1 else 0 end) intltexzdslld2,
+sum(case when sheetname='LTE下载低速率路段(<=10M)' then 1 else 0 end) intltexzdslld10,
+sum(case when sheetname='LTE上传低速率路段(<=512K)' then 1 else 0 end) intltescdslld,
+sum(case when sheetname='CSFB事件列表' then 1 else 0 end) intltesjlb,
+sum(case when sheetname='LTE弱覆盖路段(RSRP≤-110)' then 1 else 0 end) intlterfgld110,
+sum(case when sheetname='LTE弱覆盖路段(RSRP≤-100)' then 1 else 0 end) intlterfgld100,
+sum(case when sheetname='LTE连续质差路段(SINR≤0dB)' then 1 else 0 end) intltelxzld0,
+sum(case when sheetname='LTE连续质差路段(SINR≤-3dB)' then 1 else 0 end) intltelxzcld3,
+sum(case when sheetname='LTE高重叠覆盖路段概要信息' then 1 else 0 end) intltegcdfgldgyxx,
+sum(case when sheetname='LTE高重叠覆盖路段详细信息' then 1 else 0 end) intltegcdfgldxxxx,
+sum(case when sheetname='VOLTE未接通事件' then 1 else 0 end) intltewjtsj,
+sum(case when sheetname='VOLTE掉话事件' then 1 else 0 end) intltedhsj,
+sum(case when sheetname='VOLTE_eSRVCC切换失败事件' then 1 else 0 end) intlteqhsbsj,
+sum(case when sheetname='VOLTE_持续弱MOS事件' then 1 else 0 end) intltecxrmossj,
+sum(case when sheetname='VOLTE_RTP丢包事件' then 1 else 0 end) intltertpdbsj,
+sum(case when sheetname='VOLTE呼叫建立时延' then 1 else 0 end) intltehjjlsy,
+sum(case when sheetname='VOLTE_IMS注册失败事件' then 1 else 0 end) intlteimszcsbsj,
+sum(case when sheetname='VOLTE_eSRVCC切换时延-用户面(ms)' then 1 else 0 end) intlteqhsyyhm,
+sum(case when sheetname='GSM高流量小区（一周）' then 1 else 0 end) intgsmgllxq,
+sum(case when sheetname='GSM无线接通率（一周出现大于3次低于目标值）小区' then 1 else 0 end) intgsmwxjtl,
+sum(case when sheetname='GSM无线掉话率（一周出现大于3次低于目标值）小区' then 1 else 0 end) intgsmwxdhl,
+sum(case when sheetname='GSM质差话务比例' then 1 else 0 end) intgsmzchwbl,
+sum(case when sheetname='倒流小区明细' then 1 else 0 end) intgsmdlxqmx,
+sum(case when sheetname='2G高流量宏站无LTE覆盖小区' then 1 else 0 end) intgsmgllhzfgxq,
+sum(case when sheetname='2G高流量室分无LTE覆盖小区' then 1 else 0 end) intgsmsffgxq,
+sum(case when sheetname='GSM连续质差路段' then 1 else 0 end) intgsmlxzcld, 
+sum(case when sheetname='投诉补4G覆盖' then 1 else 0 end) intltetsb4gfg, 
+sum(case when sheetname='投诉4G弱覆盖小区整治' then 1 else 0 end) intltets4grfgxqzz,
+sum(case when sheetname='VoLTE上行高丢包小区' then 1 else 0 end) intltesxgdbxq,
+sum(case when sheetname='VoLTE下行高丢包小区' then 1 else 0 end) intltexxgdbxq,
+sum(case when sheetname='高流量问题严重小区' then 1 else 0 end) intltegllwtyz,
+sum(case when sheetname='同频高重叠覆盖小区' then 1 else 0 end) inttpgcdfg,
+sum(case when sheetname='全网劣于竞争对手小区' then 1 else 0 end) intqwlyjzdsxq,
+sum(case when sheetname='LTE零流量小区' then 1 else 0 end) intltelllxq
+from ${tablename} )x 
+left join 
+(select COALESCE(sum(case when vcplbtype='信令_深度覆盖' then 1 else 0 end),0) intltesdfgxl,
+COALESCE(sum(case when vcplbtype='信令_干扰' then 1 else 0 end),0) intltedlgrxl,
+COALESCE(sum(case when vcplbtype='信令_弱覆盖' then 1 else 0 end),0) intltedlfgxl,
+COALESCE(sum(case when vcplbtype='信令_高铁_干扰' then 1 else 0 end),0) intltegtgrxl,
+COALESCE(sum(case when vcplbtype='信令_高铁_弱覆盖' then 1 else 0 end),0) intltegtfgxl,
+COALESCE(sum(case when vcplbtype='投诉问题点' then 1 else 0 end),0) inttswtd
+from f_et_plb_result_new where vcordercode=? 
+and vcplbtype in ('信令_深度覆盖','信令_干扰','信令_弱覆盖','信令_高铁_干扰','信令_高铁_弱覆盖','投诉问题点') ) x1 on 1=1
+left join (select create_date,city,order_code from lte_order_track where order_code=?) x2 on 1=1
+</sql>
+
+<sql name="queryTousuList">
+  select count(1) from yy_complainproblem_month t1,f_et_plb_result_new t2 
+  where t1.vcproblemnum=t2.vcproblemnum and t2.vcordercode=?
+</sql>
+
+<sql name="exportYHTS">
+	select CASE WHEN b.intstatus=3 and p.problem_status='评估未通过' THEN '评估未通过，聚类编号为:'||b.vcjlplbnum
+	WHEN b.intstatus=3 and problem_status!='评估未通过' THEN '历史已派单，处理中，聚类编号为:'||b.vcjlplbnum ELSE b.vcjlplbnum end 聚类问题点编号,
+	CASE WHEN b.intstatus=3 THEN '历史已派单，处理中' ELSE b.vcjlplbnum end 聚类编号,
+	a.vcproblemnum 问题点编号,a.vcordernumber 流水号,a.datatime 投诉时间,a.vccity 地市,a.vcdistrict 行政区,
+	a.vcservicetype 投诉业务,a.vcproblemdescription 问题细项,a.vcsite 地址,a.vcnettype 网格类型,a.flonb 经度,
+	a.flat 纬度,a.vcgridid 网格ID,a.vcgridname 网格中文名称,a.intgridcomplaints 网格投诉量,a.vcscope 影响范围,
+	a.vcaffiliationgridname 归属网格名称
+	from yy_complainproblem_month a left join f_et_plb_order_temp b on a.vcproblemnum=b.vcproblemnum
+	left join lte_cluster_question p on b.vcjlplbnum=p.cluster_code
+	where b.vcordercode=? and a.vcgrididduty=?
+</sql>
+
+<sql name="queryTSbyorder">
+	select vcjlplbnum 聚类编号 from  f_et_plb_optimization_new where intstatus <> 3 and vcordercode=?
+</sql>
+
+<sql name="getProblemCountList">
+	select count(distinct vcproblemnum) clusterCount from f_et_plb_result_new where vcordercode==?
+</sql>

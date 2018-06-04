@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark>
+		配置说明...
+			关于问题点打部分参数都是定制并可扩展的,下面是参数的具体说明:(注：所有的配置参数名无论大小写,最后获取时都按小写)
+			
+			Job参数说明：
+				id：job标识
+				name：job名称 
+				status：任务状态 ,on开启,否则失效
+				class：用于标识初始化类：(详细信息,可以自行通过百度了解:搜索JOB 与 StatefulJob 区别)
+							1.stateless：StatelessRunner 底层实现Job类无状态标识的任务
+							2.否则为：StatefulRunner   底层实现StatefulJob类,有状态标识的任务
+				delay：任务的执行时间
+				script：调度器时间配置
+			
+			Task参数说明：
+				priority：task任务优先级,当一个job有多个task时,用于失败跳转的标识
+				class：task任务对应的处理类
+				namesFileName：sheet的名称关联表名,当然可以是其他用途,例如聚类的时候用作配置权重
+				filePath：文件路径
+				judge：判断状态绑定并跳转job,如：1-rkhcJob   当线程的状态为1时,在线程完成后将调用名称为rkhcJob的配置任务,若要配置多个状态请用','隔开,如：0-gdsmJob,1-rkhcJob
+				sqlfile：数据库脚本配置文件
+				num：当前线程等级,只做标识用,没有特殊用处
+				name：线程名称,只做标识用
+				source：数据库实例名,具体配置见application.properties  如：gp则对应source.gp.*配置
+				threadnum：线程池并发数,只针对有多线程的任务,目前只有聚类跟派单有使用到
+				externalPath：GP外部表配置路径
+				loadPath：GP外部表文件存放路径
+				timeout：数据库链接超时时间,目前只有聚类后的八步分析法有使用到
+				commandWSDL：webservice接口地址,针对工单派单定制
+				ftpip：ftp IP地址
+				ftpuser：ftp 用户名
+				ftppassword：ftp 用户密码
+	</remark>
+
+	<job id="10" name="gdsmJob" status="on" class="stateful" delay="134889" script="0 0 0,6,12,18 * * ?">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.WorkFileTask"
+			namesFileName="/problem/sheetNames.xml"
+			filePath="/data2/orderdata" 
+			judge="1-rkhcJob"
+			sqlfile="/problem/sql/gdsm.xml"
+			num="1"
+			name="gdsmTask" 
+			source="gp" />
+	</job>
+
+	<job id="20" name="rkhcJob" status="on" class="stateful" delay="134889" script="0 56 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.CheckTask"
+			namesFileName="/problem/sheetNames.xml"
+			externalPath="gpfdist://192.168.36.120:8081/"
+			loadPath="/data1/load/"
+			sqlfile="/problem/sql/rkhc.xml"
+			judge="1-jlJob" 
+			num="2" 
+			name="rkhcTask"
+			source="gp" />
+	</job>
+
+	<job id="30" name="jlJob" status="on" class="stateful" delay="134889" script="0 56 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ClusterTask"
+			sqlfile="/problem/sql/jl.xml"
+			namesFileName="/problem/cluster.xml"
+			externalPath="gpfdist://192.168.36.120:8081/"
+			loadPath="/data1/load"
+			judge="1-pdJob"
+			num="3"  
+			threadnum="5"
+			timeout="3600"
+			name="jlTask" 
+			source="gp" />
+	</job>
+
+	<job id="40" name="pdJob" status="on" class="stateful" delay="134889" script="0 56 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.SendWorkFileTask"
+			filePath="/opt/ltemr/apache-tomcat-7.0.55-8980/webapps/ltemr/file/upload/"
+			ftpIp="10.201.41.85"
+			ftpUser="jk_eoms###"
+			ftpPassword="Eomswy001!"
+			commandWSDL="http://10.243.167.195/mtnoh/Service/Command.asmx"
+			name="pdTask" 
+			sqlfile="/problem/sql/pd.xml"
+			resultxmlpath="/opt/ltemr/edmp_problem/edmp_master_new_cs/resultXml/"
+			loadPath="/data1/load"
+			namesFileName="/problem/sheetNames.xml"
+			externalPath="gpfdist://192.168.36.120:8081/"
+			num="4"
+			source="gp" />
+	</job>
+	
+	<job id="60" name="gspdJob" status="on" class="stateful" delay="134889" script="0 56 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.GsSendWorkFileTask"
+			filePath="/opt/ltemr/apache-tomcat-7.0.55-8980/webapps/ltemr/file/upload/"
+			commandWSDL="http://10.243.167.195/mtnoh/Service/Command.asmx"
+			name="gspdTask" 
+			sqlfile="/problem/sql/gspd.xml"
+			resultxmlpath="/opt/ltemr/edmp_problem/edmp_master_new_cs/resultXml/"
+			loadPath="/data1/load/"
+			namesFileName="/problem/sheetNames.xml"
+			externalPath="gpfdist://192.168.36.120:8081/"
+			num="4"
+			source="gp" />
+	</job>
+	
+	 <job id="50" name="pdnowJob" status="on" class="stateful" delay="134889" script="0 55 15 * * ? 2020">
+                <task priority="10" class="com.etone.universe.dmp.task.problem.SendWorkFileNowTask"
+                        filePath="/data2/orderdata"
+                        ftpIp="10.201.41.85"
+                        ftpUser="jk_eoms"
+                        ftpPassword="Eomswy001!"
+                        commandWSDL="http://10.201.41.85/mtnoh/Service/Command.asmx"
+                        name="pdnowTask" 
+                        sqlfile="/problem/sql/pd.xml"
+                        resultxmlpath="/opt/ltemr/edmp_problem/edmp_master_new_cs/resultXml/"
+                        loadPath="/data1/load"
+                        namesFileName="/problem/sheetNames.xml"
+                        externalPath="gpfdist://192.168.36.120:8081/"
+                        num="4"
+                        source="gp" />
+        </job>
+	
+</configuration>

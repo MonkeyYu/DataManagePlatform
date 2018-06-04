@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="crontab.xsl" ?>
+<configuration threadSize="50">
+
+	<remark>
+		配置说明...
+        <!--priority：优先级，越小越先运行，必须-->
+        <!--class：调用的class类，导出用JdbcExportTask类，必须-->
+		<!--name：task的名称，必须-->
+		<!--rootPath：存放文件的根目录，一般为外部表根目录，必须-->
+		<!--fileName：导出的文件名，可含有${hiveconf:yyyyMMdd-1}，必须-->
+		<!--splitFile：是否切割文件（true/false），false：将数据导出为一个文件放在根目录下，
+                             true：在根目录下建立一个新文件夹，将数据导出为若干文件放在新建文件夹下
+                            默认为false，非必须-->
+        <!--surround：是否需要在导出的字段头尾包裹字符串（true/false）,
+                                ture：需要包裹字符串，该字符串为surroundStr；
+                                false：不需要包裹字符串；
+                                默认为false，非必须-->
+        <!--surroundStr：包裹的字符串，当surround="true"时，该属性才起作用-->
+        <!--delimiter：字段分隔符，默认为"|"，非必须-->
+        <!--suffix：导出文件的后缀，默认没有后缀，非必须-->
+        <!--sqlFileName：导出文件的sql文件名，位于/conf/sql目录下，必须-->
+        <!--size：切割后文件每个文件的最大记录数，默认为100000，非必须-->
+        <!--source：数据源，必须-->
+
+	</remark>
+
+    <job id="1" name="gpExportJob" status="on" class="stateful" delay="134889" script="0 30 3 * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.problem.JdbcExportTask"
+            name="gpExportTask"
+            rootPath="/data1/nokia_ftp_data/"
+            fileName="Workload_Fanganku_YT_${hiveconf:yyyyMMdd-1}"
+            splitFile="false"
+            surround="true"
+            surroundStr='"'
+            delimiter="|"
+            suffix="csv"
+            sqlFileName="gpExport.sql"
+            size="100000"
+            source="gp" />
+    </job>
+
+    <job id="2" name="mysqlExportJob" status="on" class="stateful" delay="134889" script="10 30 3 * * ?">
+	    <task priority="10" class="com.etone.universe.dmp.task.problem.JdbcExportTask"
+            name="mysqlExportTask"
+            rootPath="/data1/nokia_ftp_data/"
+            fileName="Pageview_Fanganku_YT_${hiveconf:yyyyMMdd-1}"
+            splitFile="false"
+            surround="true"
+            surroundStr='"'
+            delimiter="|"
+            suffix="csv"
+            sqlFileName="mysqlExport.sql"
+            size="100000"
+            source="mysql"/>
+    </job>
+
+    <job id="3" name="gpUploadJob" status="on" class="stateful" delay="134889" script="0 40 3 * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.ftp.UploadTask"
+            name="nokia_workload.properties"
+            local="/data1/nokia_ftp_data/"
+            emote="/wokload/"
+            prefix="Workload_Fanganku_YT_"
+            suffix=".csv"
+            delSource='true'
+            server="nokia" />
+    </job>
+
+    <job id="4" name="mysqlUploadJob" status="on" class="stateful" delay="134889" script="10 40 3 * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.ftp.UploadTask"
+              externalPath="gpfdist://192.168.36.120:8081/"
+              namesFileName="/problem/updatetables.xml"
+              errorFilePath="/data1/ftp_data_error/"
+              ftpPath="/data1/ftp_data/"
+              filePath="D:\\1.txt"
+              sqlfile="/sql/gpExport.sql"
+              num="5"
+              name="nokia_pageview.properties"
+              source="gp" />
+    </job>
+
+    <job id="5" name="ExportJob" status="on" class="stateful" delay="134889" script="0 50 3 * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.problem.JdbcExportTask"
+            name="exportjob"
+            rootPath="/data1/load/"
+            fileName="d_et_plan_cellinfo"
+            delimiter="|"
+            splitFile="true"
+            surround="false"
+            suffix="csv"
+            size="10000"
+            sqlFileName="d_et_plan_cellinfo_export.sql"
+            source="nokia_test" />
+    </job>
+
+    <!--priority：优先级，越小越先执行，必须-->
+    <!--class：调用的class类，必须-->
+    <!--name：外部表导入sql文件名称，必须-->
+    <!--source：数据源，必须-->
+    <job id="6" name="importJob" status="on" class="stateful" delay="134889" script="0 0 4 * * ?">
+        <task priority="10" class="com.etone.universe.dmp.task.problem.ExprotTask"
+              name="d_et_plan_cellinfo_import.sql"
+              source="gp" />
+    </job>
+</configuration>
+

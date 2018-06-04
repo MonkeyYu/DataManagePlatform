@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="export.xsl" ?>
+<configuration>
+
+    <remark>配置说明...</remark>
+
+    <!-- <ftp>
+        <server name="local" ip="192.168.8.40" port="21" user="root" password="1qaz2wsx"></server>
+    </ftp> -->
+
+    <task id="1" name="f_ps_a1_day" local="/home/hadoop/" remote="/home/hadoop/task1/" prefix="f_ps_a_day_${hiveconf:yyyyMMdd}" suffix=".csv" server="local"></task>
+    <task id="1" name="f_ps_a1_day" local="/home/hadoop/" remote="/home/hadoop/task2/" prefix="f_ps_a_day_${hiveconf:yyyyMMdd}" suffix=".csv" server="local"></task>
+    <task id="1" name="f_ps_a1_day" local="/home/hadoop/" remote="/home/hadoop/task3/" prefix="f_ps_a_day_${hiveconf:yyyyMMdd}" suffix=".csv" server="local"></task>
+
+
+</configuration>
