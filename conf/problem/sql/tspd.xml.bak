@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- 查询投诉问题点 -->
+<sql name="queryTousuWorkJob">
+	select * from ts_test
+</sql>
+
+<sql name="queryClusterList">
+	select * from lte_cluster_question where data_source not like'%ATU%'
+</sql>
+
+<!-- 创建结果集外部表 -->
+<sql name="createExtTable">
+CREATE EXTERNAL TABLE ${tableName} ( 
+	intid int8,
+	vctsid varchar,
+	dttstime timestamp,
+	vccity varchar,
+	vcarea varchar,
+	vctsmsg varchar,
+	vctstype varchar,
+	vcaddress varchar,
+	vcnettype varchar,
+	flong float8,
+	flat float8,
+	vcgridid varchar,
+	vcchgrid varchar,
+	inttsnum int8,
+	vcaffectarea varchar,
+	vcyhgrid varchar,
+	vcjlplbnum varchar,
+	intjlcount int8,
+	vcjlcity varchar,
+	fjllonb float8,
+	fjllat float8,
+	vccgi varchar,
+	intdateid int8,
+	vcdatasource varchar,
+	vcjlgridid varchar,
+	vcfilename varchar,
+	vcquestiontype varchar,
+	first_analysis varchar,
+	first_proposal varchar,
+	reason_classifyvarchar,
+	first_proposal_type varchar,
+	detail_analysis varchar,
+	detail_proposal varchar,
+	detail_reason varchar,
+	detail_proposal_type varchar,
+	trim_village varchar,
+	property varchar,
+	target varchar,
+	order_state varchar,
+	is_solved varchar,
+	vcordercode varchar,
+	createtime timestamp,
+	problemstatus varchar
+)location ('${filePath}') format 'csv' (delimiter '|' null '') 
+log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
+
+<!-- 创建结果集外部表 -->
+<sql name="createTopNExtTable">
+CREATE EXTERNAL TABLE ${tableName} ( 
+	intid int8,
+	vctsid varchar,
+	dttstime timestamp,
+	vccity varchar,
+	vcarea varchar,
+	vctsmsg varchar,
+	vctstype varchar,
+	vcaddress varchar,
+	vcnettype varchar,
+	flong float8,
+	flat float8,
+	vcgridid varchar,
+	vcchgrid varchar,
+	inttsnum int8,
+	vcaffectarea varchar,
+	vcyhgrid varchar
+)location ('${filePath}') format 'csv' (delimiter '|' null '') 
+log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
+
+<!-- 插入结果语句 -->
+<sql name="insertData">
+	insert into ts_test2 (intid,vctsid,dttstime,vccity,vcarea,vctsmsg,vctstype,vcaddress,vcnettype,
+	flong,flat,vcgridid,vcchgrid,inttsnum,vcaffectarea,vcyhgrid,vcjlplbnum,intjlcount,vcjlcity,fjllonb,
+	fjllat,vccgi,intdateid,vcdatasource,vcjlgridid,vcfilename,vcquestiontype,first_analysis,first_proposal,
+	reason_classify,first_proposal_type,detail_analysis,detail_proposal,detail_reason,detail_proposal_type,
+	trim_village,property,target,order_state,is_solved,vcordercode,createtime,problemstatus) 
+	select intid,vctsid,dttstime,vccity,vcarea,vctsmsg,vctstype,vcaddress,vcnettype,flong,flat,
+	vcgridid,vcchgrid,inttsnum,vcaffectarea,vcyhgrid,vcjlplbnum,intjlcount,vcjlcity,fjllonb,fjllat,
+	vccgi,intdateid,vcdatasource,vcjlgridid,vcfilename,vcquestiontype,first_analysis,first_proposal,
+	reason_classify,first_proposal_type,detail_analysis,detail_proposal,detail_reason,detail_proposal_type,
+	trim_village,property,target,order_state,is_solved,vcordercode,createtime,problemstatus
+	from ${tableName}
+</sql>
+
+<!-- 插入TOP N中间表 -->
+<sql name="insertData">
+	insert into ts_test3 (intid,vctsid,dttstime,vccity,vcarea,vctsmsg,vctstype,vcaddress,vcnettype,
+	flong,flat,vcgridid,vcchgrid,inttsnum,vcaffectarea,vcyhgrid) 
+	select intid,vctsid,dttstime,vccity,vcarea,vctsmsg,vctstype,vcaddress,vcnettype,flong,flat,
+	vcgridid,vcchgrid,inttsnum,vcaffectarea,vcyhgrid
+	from ${tableName}
+</sql>

@@ -1,0 +1,68 @@
+<job id="10" name="morFtpJob" status="on" class="stateful" delay="134889" script="0 0 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemFtpTask"
+			sqlfile="problem/sql/ftp.xml"
+			filetypes="mro,mr"
+			typenum="1"
+			filesplit="-"
+			loadall="1"
+			datatype="MRO,MR"
+			loadpath="/data2/mro/"
+			url="10.201.29.137" user="ltemr" pwd="Lte(MR)_12#$" port="21"
+			num="5" name="mroFtpTask"
+			source="mysql" />
+	</job>
+	
+	<job id="20" name="yytxdsFtpJob" status="on" class="stateful" delay="134889" script="0 0 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemFtpTask"
+			sqlfile="problem/sql/ftp.xml"
+			filetypes="txds"
+			typenum="0"
+			filesplit="_"
+			loadpath="/data1/ftp_data/"
+			datatype="通信大师问题点"
+			url="188.5.6.129" user="yitong" pwd="yitong@YT20161101" port="21"
+			num="5" name="yytxdsFtpTask"
+			source="mysql" />
+	</job>
+	
+	<job id="30" name="yytxdsddFtpJob" status="on" class="stateful" delay="134889" script="0 0 1 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemFtpTask"
+			sqlfile="problem/sql/ftp.xml"
+			filetypes="txds"
+			typenum="0"
+			filesplit="_"
+			loadpath="/data1/ftp_data/"
+			datatype="通信大师地图打点数据"
+			url="188.5.6.129" user="dingliboce" pwd="dingliboce@DL20161101" port="21"
+			num="5" name="yytxdsddFtpTask"
+			source="mysql" />
+	</job>
+	
+	<job id="100" name="mrsRsrpFtpJob" status="on" class="stateful" delay="134889" script="0 0 0 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemFtpAddDateTask"
+			sqlfile="problem/sql/ftp.xml"
+			filetypes="mrsRsrp"
+			typenum="0"
+			filesplit="_"
+			loadpath="/data1/ftp_data/"
+			remotepath="/LTE-MR测量数据共享/"
+			datatype="mrsRsrp"
+			url="10.201.29.137" user="ltemr" pwd="Lte(MR)_12#$" port="21"
+			num="5" name="mrsRsrpFtpTask"
+			prefix="广东省_lte-p01_参考信号接收功率"
+			source="mysql" />
+	</job>
+	<job id="101" name="mrsRsrqFtpJob" status="on" class="stateful" delay="134889" script="0 0 0 * * ? 2020">
+		<task priority="10" class="com.etone.universe.dmp.task.problem.ProblemFtpAddDateTask"
+			sqlfile="problem/sql/ftp.xml"
+			filetypes="mrsRsrq"
+			typenum="0"
+			filesplit="_"
+			loadpath="/data1/ftp_data/"
+			remotepath="/LTE-MR测量数据共享/"
+			datatype="mrsRsrq"
+			url="10.201.29.137" user="ltemr" pwd="Lte(MR)_12#$" port="21"
+			num="5" name="mrsRsrqFtpTask"
+			prefix="广东省_lte-p02_参考信号接收质量"
+			source="mysql" />
+	</job>

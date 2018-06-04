@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.etone:16k-daemon:1.0.0-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://D:/Maven/Repository/com/etone/16k-daemon/1.0.0-SNAPSHOT/16k-daemon-1.0.0-SNAPSHOT.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/Maven/Repository/com/etone/16k-daemon/1.0.0-SNAPSHOT/16k-daemon-1.0.0-SNAPSHOT-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/Maven/Repository/com/etone/16k-daemon/1.0.0-SNAPSHOT/16k-daemon-1.0.0-SNAPSHOT-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

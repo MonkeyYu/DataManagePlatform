@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 创建外部表语句(正式) -->
+ <sql name="createExtTable">
+ 	CREATE EXTERNAL TABLE ${tableName}
+			(
+			vcproblemnum varchar(200),
+			sheetname varchar(200),
+			rownum int,
+			flong float8,
+			flat float8
+			)
+			location ('${externalPathStr}') format 'csv' (delimiter '|' null '') 
+			log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
+
+<!-- 核查入库表语句 -->
+<sql name="checkData">
+	select t.vcproblemnum from ${tableName2} t where t.sheetname=? and not exists(select 1 from ${tableName1}_month t2 where t2.vcproblemnum2=t.vcproblemnum)
+</sql>
+

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 聚合类别权重 -->
+<names id="jhlbqz" type="int">
+	<name key="IFGTS">1</name>
+	<name key="IFGXL">2</name>
+	<name key="IFG">3</name>
+	<name key="IVoLTE">4</name>
+	<name key="IZC">5</name>
+	<name key="IJG">6</name>
+	<name key="IRL">7</name>
+	<name key="IFL">8</name>
+	<name key="IPML">9</name>
+	<name key="IPMG">10</name>
+	<name key="OBFGTS">11</name>
+	<name key="OFGTS">12</name>
+	<name key="OFGXL">13</name>
+	<name key="OZCXL">14</name>
+	<name key="OFG">15</name>
+	<name key="OZC">16</name>
+	<name key="OSL">17</name>
+	<name key="OVoLTE">18</name>
+	<name key="OCSFB">19</name>
+	<name key="OJG">20</name>
+	<name key="ORL">21</name>
+	<name key="OFL">22</name>
+	<name key="OPML">23</name>
+	<name key="OPMG">24</name>
+	<name key="YHTS">25</name>
+</names>
+
+<!-- 聚类类别权重基准 -->
+<names id="jhlbjz" type="double">
+	<name key="IFGTS">0.9</name>
+	<name key="OBFGTS">0.9</name>
+	<name key="OFGTS">0.9</name>
+	<name key="OJG">0.55</name>
+	<name key="IVoLTE">0.7</name>
+	<name key="IFG">0.8</name>
+	<name key="OPMG">0.35</name>
+	<name key="OFGXL">0.9</name>
+	<name key="IFGXL">0.9</name>
+	<name key="IFL">0.3</name>
+	<name key="IZC">0.6</name>
+	<name key="OZCXL">0.85</name>
+	<name key="IRL">0.4</name>
+	<name key="OFL">0.45</name>
+	<name key="OSL">0.7</name>
+	<name key="ORL">0.5</name>
+	<name key="OCSFB">0.6</name>
+	<name key="IJG">0.5</name>
+	<name key="OFG">0.8</name>
+	<name key="OZC">0.75</name>
+	<name key="OPML">0.4</name>
+	<name key="IPMG">0.1</name>
+	<name key="OVoLTE">0.65</name>
+	<name key="IPML">0.2</name>
+	<name key="YHTS">0.9</name>
+</names>
+
+<!-- 聚类对应的聚类编号 -->
+<names id="intjlType" type="int">
+	<name key="IFGTS">10606</name>
+	<name key="OBFGTS">10604</name>
+	<name key="OFGTS">10605</name>
+	<name key="OJG">10517</name>
+	<name key="IVoLTE">10503</name>
+	<name key="IFG">10502</name>
+	<name key="OPMG">10521</name>
+	<name key="OFGXL">10510</name>
+	<name key="IFGXL">10501</name>
+	<name key="IFL">10507</name>
+	<name key="IZC">10504</name>
+	<name key="OZCXL">10511</name>
+	<name key="IRL">10506</name>
+	<name key="OFL">10519</name>
+	<name key="OSL">10514</name>
+	<name key="ORL">10518</name>
+	<name key="OCSFB">10516</name>
+	<name key="IJG">10505</name>
+	<name key="OFG">10512</name>
+	<name key="OZC">10513</name>
+	<name key="OPML">10520</name>
+	<name key="IPMG">10509</name>
+	<name key="OVoLTE">10515</name>
+	<name key="IPML">10508</name>
+	<name key="YHTS">10630</name>
+</names>
+
+<!-- 城市编号集合 -->
+<names id="city" type="string">
+	<name key="860668">MM_</name>
+	<name key="860769">DG_</name>
+	<name key="860663">JY_</name>
+	<name key="860662">YJ_</name>
+	<name key="860760">ZS_</name>
+	<name key="860763">QY_</name>
+	<name key="860762">HY_</name>
+	<name key="860768">CZ_</name>
+	<name key="860766">YF_</name>
+	<name key="860756">ZH_</name>
+	<name key="860757">FS_</name>
+	<name key="86020">GZ_</name>
+	<name key="860754">ST_</name>
+	<name key="860755">SZ_</name>
+	<name key="860752">HZ_</name>
+	<name key="860753">MZ_</name>
+	<name key="860750">JM_</name>
+	<name key="860751">SG_</name>
+	<name key="860758">ZQ_</name>
+	<name key="860660">SW_</name>
+	<name key="860759">ZJ_</name>
+</names>
+
+<!-- 城市编号集合 -->
+<names id="cityname" type="string">
+	<name key="茂名">860668</name>
+	<name key="东莞">860769</name>
+	<name key="揭阳">860663</name>
+	<name key="阳江">860662</name>
+	<name key="中山">860760</name>
+	<name key="清远">860763</name>
+	<name key="河源">860762</name>
+	<name key="潮州">860768</name>
+	<name key="云浮">860766</name>
+	<name key="珠海">860756</name>
+	<name key="佛山">860757</name>
+	<name key="广州">86020</name>
+	<name key="汕头">860754</name>
+	<name key="深圳">860755</name>
+	<name key="惠州">860752</name>
+	<name key="梅州">860753</name>
+	<name key="江门">860750</name>
+	<name key="韶关">860751</name>
+	<name key="肇庆">860758</name>
+	<name key="汕尾">860660</name>
+	<name key="湛江">860759</name>
+</names>
+
+<!-- 更新问题点指标值 -->
+<names id="ptargetname" type="string">
+	<name key="mt_cdfgxx_cell_month">'重叠覆盖度：'||fpjcdfgl</name>
+	<name key="mt_cdfggy_cell_month">'重叠覆盖度：'||fpjcdfgl</name>
+	<name key="mt_yyscxz_cell_month">case when position('XZ10' in vcproblemnum2)>0 then '下载速率低于10M采样点比例：'||flowrate	when position('SC' in vcproblemnum2)>0 then '上传速率低于512k采样点比例：'||flowrate	else '下载速率低于2M采样点比例：'||flowrate end</name>
+	<name key="mt_csfbcgl_cell_month">'异常事件名称：'||vcname</name>
+	<name key="mt_gsmlxcld_cell_month">'平均RxQuality：'||averagerxquality</name>
+	<name key="mt_voltertodbsj_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="mt_voltedhsj_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="mt_voltecxrmossj_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="mt_voltenoconnection_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="mt_lxzc_cell_month">'平均RxQuality：'||favgquality</name>
+	<name key="mt_rfg_cell_month">'弱覆盖点占比：'||fmrweakcoverrate</name>
+	<name key="mt_volteesrvccqhsbsj_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="yt_xldlgr_grid_month">'栅格干扰概率：'||AvgMod3</name>
+	<name key="yt_xldlfg_grid_month">'栅格覆盖率：'||CoverageRate</name>
+	<name key="mt_volteimszcsbsj_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="mt_volteesrvccqhsyyhm_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="mt_voltehjjlsy_cell_month">'异常事件名称：'||vcExceptionEventName</name>
+	<name key="yt_gtrfg_cell_month">'栅格覆盖率：'||CoverageRate</name>
+	<name key="yt_gtgr_cell_month">'栅格干扰概率：'||AvgMod3</name>
+	<name key="mt_2ggllsfnolte_cell_month">'数据流量：'||fDataFlow</name>
+	<name key="mt_gsmgllxq_cell_month">'日均流量：'||fAveragedailyflow</name>
+	<name key="mt_ggrxq_cell_month">'干扰系数：'||fRipEutr</name>
+	<name key="mt_ltecgxq_cell_month">'天线挂高：'||fAntHigh</name>
+	<name key="mt_ltecjxq_cell_month">'站间距：'||fSNDistance</name>
+	<name key="mt_ltecyxq_cell_month">'站间距：'||fSFDistance</name>
+	<name key="mt_gfhdhrxq_cell_month">'上行吞吐量（MB）：'||fUpThroughput ||'； 下行吞吐量（MB）：'||fDownThroughput</name>
+	<name key="mt_esvrccqhcxq_cell_month">'切换至2G成功率：'||intRrcHoIntraCellSucc2G*1.0/intRrcHoIntraReq2G</name>
+	<name key="mt_volteerabdxgxqsp_cell_month">'E-RAB掉线率（视频）：'||case when intZcdenbErab2=0 then 0 else 1-intZcdenbErab2*1.0/intZcdenbErab2 end</name>
+	<name key="mt_volteerabdxgxqyy_cell_month">'E-RAB掉线率（语音）：'||case when intZcdenbErab1=0 then 0 else 1-intZcdenbErab1*1.0/intZcdenbErab1 end</name>
+	<name key="mt_voltewxjtcxqsp_cell_month">'无线接通率（视频）：'||(fQci2erabjlcgs*1.0/fQci2erabjlqqs)*(intRrcConnSucc*1.0/intRrcConnReq)</name>
+	<name key="mt_voltewxjtcxqyy_cell_month">'无线接通率（视频）：'||case when intQci1erabjlqqs=0 or intRrcConnReq=0 then 0 else (intQci1erabjlcgs*1.0/intQci1erabjlqqs)*(intRrcConnSucc*1.0/intRrcConnReq) end</name>
+	<name key="mt_voltexxgsyxq_cell_month">'时延平均值：'||fVoltexxpjsyzpjz</name>
+	<name key="mt_ltemrrfgxq_cell_month">'MRS覆盖率（-110dBm）：'||f110MroRate</name>
+	<name key="mt_gsmwxdhl_cell_month">'GSM无线掉话率：'||fHyxddhzcs*1.0/fHyxdzyzcs</name>
+	<name key="mt_gsmwxjtl_cell_month">'GSM无线接通率：'||1-intWxjtlsbcs*1.0/fYyxdshcs</name>
+	<name key="mt_gsmzchwbl_cell_month">'GSM质差话务比例：'||fSxxrxquality6_7jdcyd*1.0/fSxxcydzs</name>
+	<name key="mt_ltewxdxl_cell_month">'LTE无线掉线率：'||1-fZcenbqqsfcs*1.0/fEnbqqsfsxws</name>
+	<name key="mt_ltewxjtl_cell_month">'LTE无线接通率：'||(erabjlcgs*1.0/erabjlqqs)*(fRrcConnSucc*1.0/fRrcConnReq)</name>
+	<name key="mt_dlxqmx_cell_month">'倒流流量（MB）：'||fFlowBack</name>
+	<name key="mt_volteyhqhcxq_cell_month">'Enb间S1切换成功率：'||case when volteyhenbjs1qhcqqcs=0 then 0 else volteyhenbjs1qhccgcs*1.0/volteyhenbjs1qhcqqcs end||'；Enb间X2切换成功率：'||case when volteyhenbjx2qhcqqcs=0 then 0 else volteyhenbjx2qhccgcs*1.0/volteyhenbjx2qhcqqcs end||'；Enb内切换成功率：'||case when volteyhenbnqhcqqcs=0 then 0 else volteyhenbnqhccgcs*1.0/volteyhenbnqhcqqcs end</name>
+	<name key="mt_qci2czqhcxq_cell_month">'Enb间S1切换成功率：'||case when qci2czenbjs1qhcqqcs=0 then 0 else qci2czenbjs1qhccgcs*1.0/qci2czenbjs1qhcqqcs end ||'；Enb间X2切换成功率：'||case when qci2czenbjx2qhcqqcs=0 then 0 else qci2czenbjx2qhccgcs*1.0/qci2czenbjx2qhcqqcs end||'；Enb内切换成功率：'||case when qci2czenbnqhcqqcs=0 then 0 else qci2czenbnqhccgcs*1.0/qci2czenbnqhcqqcs end</name>
+	<name key="yt_lyrfg_cell_month">'楼宇覆盖率：'||CoverageRate</name>
+	<name key="mt_tsb4gfg_cell_month">'问题原因，需补4G覆盖：'||vcreasonsproblem</name>
+	<name key="mt_ts4grfgxqzz_cell_month">'主要活动LTE小区MR覆盖率：'||ffractioncoverage</name>
+	<name key="mt_voltesxgdbxq_cell_month">'VoLTE上行高丢包平均值：'||(fStartDay1+fStartDay2+fStartDay3+fStartDay4+fStartDay5+fStartDay6+fStartDay7)/7</name>
+	<name key="mt_voltexxgdbxq_cell_month">'VoLTE下行高丢包平均值：'||(fStartDay1+fStartDay2+fStartDay3+fStartDay4+fStartDay5+fStartDay6+fStartDay7)/7</name>
+	<name key="mt_lteqhcxq_cell_month">'切换成功率：'||round(cast(cast(vchandoversuccnum as float)*1.0/cast(vchandoverreqnum as float) as decimal),2)</name>
+	<name key="mt_4ggllwtyzxq_cell_month">'日均流量：'||fdailyflow</name>
+	<name key="mt_tpgcdfgxq_cell_month">'同频DB6内3邻区采样比例：'||ffrequencync3rate</name>
+	<name key="mt_qwlyjzdsxq_cell_month">'移动覆盖率（-110）：'||vcfgl110||'联通覆盖率（-113）：'||vcunfgl113||'电信覆盖率（-113）：'||vctefgl113</name>
+	<name key="mt_ltelllxq_cell_month">'总流量：'||fAllThroughput</name>
+	<name key="yy_point_mon_month">'投诉细项：'||vststype</name>
+</names>

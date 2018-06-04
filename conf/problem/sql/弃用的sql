@@ -1,0 +1,124 @@
+  <!-- 室外2/4G分流 -->
+<sql name="getOflList">
+      select p.*,'OFL' as vcjhplb,0.45 fplbbalance from(
+      select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10544' intplbtype,'GSM高流量' vcplbtype
+			from mt_2ggllhznolte_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+			and vccgi is not null
+      union all
+      select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10544' intplbtype,'GSM高流量' vcplbtype
+			from mt_gsmgllxq_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+			and vccgi is not null and vccovertype='室外'
+      union all
+      select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10563' as intplbtype,'高倒流2G' as vcplbtype
+			from mt_dlxqmx_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+			 and vccgi is not null and covertype='室外') p
+			group by vcproblemnum,intdateid,intcityid,vcgridid,flonb,flat,intplbtype,vcplbtype,vccgi
+</sql>
+
+
+<!-- 室内结构/室外结构 -->
+<sql name="getLjgcList">
+      select p.*,0.55 fplbbalance
+      from((select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10547' intplbtype,'LTE超高站' vcplbtype,
+			case when vccovertype='室内' then 'IJG' when vccovertype='室外' then 'OJG' else '' end vcjhplb
+			from mt_ltecgxq_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+      and vccgi is not null)
+      union all
+      (select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10548' intplbtype,'LTE超近站' vcplbtype,
+			case when vccovertype='室内' then 'IJG' when vccovertype='室外' then 'OJG' else '' end vcjhplb
+			from mt_ltecjxq_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+			and vccgi is not null)
+      union all
+      (select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10549' intplbtype,'LTE超远站' vcplbtype,
+			case when vccovertype='室内' then 'IJG' when vccovertype='室外' then 'OJG' else '' end vcjhplb
+			from mt_ltecyxq_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+			and vccgi is not null)) p 
+			group by vcproblemnum,intdateid,intcityid,vcgridid,flonb,flat,intplbtype,vcplbtype,vccgi,vcjhplb,fplbbalance
+</sql>
+
+
+ <!-- 室内容量/室外容量 -->
+<sql name="getLrlList">
+      select p.*,0.5 fplbbalance from(
+      select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10550' as intplbtype,'LTE高负荷' as vcplbtype,
+			case when vccovertype='室内' then 'IRL' when vccovertype='室外' then 'ORL' else '' end vcjhplb
+			from mt_gfhdhrxq_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+      and vccgi is not null) p
+			group by vcproblemnum,intdateid,intcityid,vcgridid,flonb,flat,intplbtype,vcplbtype,vccgi,vcjhplb,fplbbalance
+</sql>
+
+
+  <!-- 室内/室外GSM性能 -->
+<sql name="getWgzbgList">
+      select p.*,0.35 fplbbalance from
+      ((select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb 
+			when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10558' as intplbtype,'GSM高掉话' as vcplbtype,
+			case when vccovertype='室内' then 'IPMG' when vccovertype='室外' then 'OPMG' else '' end vcjhplb
+			from mt_gsmwxdhl_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+      and vccgi is not null)
+      union all
+      (select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb 
+			when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10559' as intplbtype,'GSM低接通' as vcplbtype,
+			case when vccovertype='室内' then 'IPMG' when vccovertype='室外' then 'OPMG' else '' end vcjhplb
+			from mt_gsmwxjtl_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+      and vccgi is not null)
+      union all
+      (select vcproblemnum2 vcproblemnum,'20'||split_part(vcproblemnum2,'-',3) intdateid,intcityid,vccgi,flonb,flat,
+      case when vcgridida!='' then vcgridida when vcgrididb!='' then vcgrididb 
+			when vcgrididc!='' then vcgrididc else '' end vcgridid,
+			'10560' as intplbtype,'GSM质差' as vcplbtype,
+			case when vccovertype='室内' then 'IPMG' when vccovertype='室外' then 'OPMG' else '' end vcjhplb
+			from mt_gsmzchwbl_cell_month m where exists(select vcproblemnum from ${orderTableName} r where
+	r.vcproblemnum=m.vcproblemnum2 and not exists(select
+	vcproblemnum from f_et_plb_result_new s where
+	r.vcproblemnum=s.vcproblemnum))
+      and vccgi is not null)) p
+			group by vcproblemnum,intdateid,intcityid,vcgridid,flonb,flat, intplbtype,vcplbtype,vccgi,vcjhplb,fplbbalance
+</sql>
+
+

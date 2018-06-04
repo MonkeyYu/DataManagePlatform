@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sql name="config">
+	select * from f_et_tables_all order by id asc
+</sql>
+
+<sql name="logData">
+	insert into f_et_distribution_log(
+	datatime,vcfactory,vcfilename,vcshorttablename, vcctablename, vcweidu,
+	vcetablename, intflagsprit, intfieldcount, intflagsucc, vcdescribe,
+	ftakingtime, databckpath, countHangShu, errorCount)
+	values(now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+</sql>
+
+<!--查询是否入库过改文件 -->
+<sql name="checkFlgInsert">
+	select count(1) num from f_et_distribution_log where
+	vcfilename like ?
+</sql>
+
+<!--删除该文件的日志记录 -->
+<sql name="deleteFromLog">
+	delete from f_et_distribution_log where vcfilename like ?
+</sql>
+
+<!--删除该文件的错误记录 -->
+<sql name="deleteFromErr">
+	delete from err_sales_ext_t where filename like ?
+</sql>
+
+<!--根据配置文件获取表字段 -->
+<sql name="getFields">
+	select
+	t2.ecloumn,
+	t2.vccloumn
+	from f_et_tables_all t1,
+	f_et_tables_column t2
+	where
+	t1.id= t2.tableid
+	and t1.tablename = ?
+	order by cloumnorder asc
+</sql>
+
+<!--查询是否存在 -->
+<sql name="flagExists">
+	select 1 from pg_tables where tablename like ? and
+	tablename not like '%_1_prt_%'
+</sql>
+
+<!--查询是否有当月分区 -->
+<sql name="getGetPartTabCount">
+	select count(1) num from pg_tables where tablename like ?
+	and tablename like ?
+</sql>
+
+<!--统计文件总共多少行 -->
+<sql name="getCountHangShu">
+	select count(1) num from 
+</sql>
+
+<!--数据分发中心——查询入库是否异常 -->
+<sql name="queryErrorList">
+	select count(1) num from err_sales_ext_t where filename like ?
+</sql>
+
+<!-- 删除外部表语句 -->
+<sql name="deleteTable">
+	DROP EXTERNAL TABLE IF EXISTS 
+</sql>
+
+<!-- 创建外部表语句 -->
+<sql name="createExtTable">
+		create external table ${tableName}(${columns})
+			location ('${filePath}') format 'csv' (delimiter '|' null '') 
+			log errors into err_sales_ext_t segment reject limit 1000 rows
+</sql>
